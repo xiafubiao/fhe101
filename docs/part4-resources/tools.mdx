@@ -1,0 +1,52 @@
+---
+sidebar_position: 2
+---
+
+# 开发者工具
+
+## 在线 Playground
+
+| 工具 | 链接 | 用途 |
+|------|------|------|
+| TFHE-rs 官方 Examples | https://github.com/zama-ai/tfhe-rs/tree/main/examples | 官方示例代码 |
+| OpenFHE Webinars | YouTube | 官方视频教程 |
+
+## 性能估算
+
+### 在线工具
+- [OpenFHE 官网](https://www.openfhe.org) - 官方文档和示例
+- [Zama 官网](https://www.zama.ai) - TFHE-rs 和 Concrete
+
+### 命令行工具
+
+```bash
+# 查看 OpenFHE 基准测试
+./openfhe/bin/benchmark
+
+# 查看 SEAL 性能
+dotnet run --project SEALExamples
+```
+
+## 常用库
+
+### C++生态
+- [OpenFHE](https://github.com/openfheorg/openfhe-development) - 全功能 FHE 库
+- [Microsoft SEAL](https://github.com/microsoft/SEAL) - BFV/CKKS
+- [HEAAN](https://github.com/snucrypto/HEAAN) - CKKS 优化
+
+### Rust 生态
+- [TFHE-rs](https://github.com/zama-ai/tfhe-rs) - 布尔 FHE
+- [FHE.rs](https://github.com/FHE-org/fhe.rs) - Rust FHE 生态
+
+### Python 生态
+- [PySEAL](https://pypi.org/project/pyseal/) - SEAL Python 绑定
+- [TenSEAL](https://github.com/OpenMined/TenSEAL) - CKKS  Python 绑定
+- [Concrete](https://github.com/zama-ai/concrete) - TFHE Python
+
+## IDE 推荐
+
+| IDE | 插件 | 用途 |
+|-----|------|------|
+| VS Code | rust-analyzer, C++ IntelliSense | 主要开发 |
+| CLion | CMake, Rust | 大型项目 |
+| Jupyter | PySEAL | 快速实验 |

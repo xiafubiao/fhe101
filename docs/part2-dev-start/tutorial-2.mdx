@@ -1,0 +1,173 @@
+---
+sidebar_position: 3
+---
+
+# 案例一：区块链隐私交易
+
+## 环境准备
+
+本案例使用 **TFHE-rs**（Rust 实现），由 Zama 提供。
+
+### 系统要求
+
+| 项目 | 要求 |
+|------|------|
+| 操作系统 | Linux (Ubuntu 20.04+), macOS, Windows (WSL2) |
+| 内存 | 最少 8GB（推荐 16GB+） |
+| Rust | 1.60+ |
+
+### 安装步骤
+
+```bash
+# 1. 安装 Rust（如果还没有）
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+source ~/.cargo/env
+
+# 2. 创建项目
+cargo new privacy-token
+cd privacy-token
+
+# 3. 添加 TFHE-rs 依赖
+cargo add tfhe --features boolean,shortint,integer
+
+# 4. 编译（首次编译可能需要 10-20 分钟）
+cargo build --release
+```
+
+### 注意事项
+
+:::warning 首次编译时间长
+TFHE-rs 包含大量密码学运算，首次编译可能需要 10-20 分钟，请耐心等待。
+:::
+
+:::warning 内存要求
+编译时需要较大内存，如果内存不足可能编译失败。
+:::
+
+## 场景
+
+在传统区块链上，所有的交易金额、余额都是公开的。假设 Alice 想向 Bob 转账，但她不想让别人知道自己有多少钱、转了多少。
+
+使用 FHE 技术，可以在区块链上实现**机密 ERC-20 Token**，让交易金额和余额保持加密状态。
+
+## 机密交易原理
+
+```
+传统 ERC-20 交易：
+Alice 转账 100 USDC 给 Bob
+→ 所有人可见：Alice 地址、Bob 地址、转账金额
+
+机密 ERC-20 交易：
+Alice 转账 E(100) USDC 给 Bob（E 表示加密）
+→ 只有 Alice 和 Bob 知道实际金额
+→ 验证者可以验证交易有效性，但不知道具体金额
+```
+
+## FHE 方案选择
+
+| 方案 | 适用场景 | 说明 |
+|------|----------|------|
+| TFHE | 余额比较、条件判断 | 适合需要比较操作的场景 |
+| BFV | 整数运算、批处理 | 适合大额整数运算 |
+| CKKS | 近似计算 | 适合需要浮点精度的场景 |
+
+## 使用 TFHE 实现隐私转账
+
+```rust
+// 简化示例：TFHE-rs 实现隐私转账
+use tfhe::prelude::*;
+use tfhe::{generate_keys, set_server_key, FheUint32};
+
+fn main() {
+    // 1. 生成密钥
+    let config = ConfigBuilder::all_disabled()
+        .enable_default_integers()
+        .build();
+    let (client_key, server_key) = generate_keys(config);
+    set_server_key(server_key);
+
+    // 2. Alice 的初始余额和转账金额（明文）
+    let alice_balance: u32 = 1000;  // Alice 有 1000 USDC
+    let transfer_amount: u32 = 100;  // 转账 100 USDC
+
+    // 3. Alice 加密自己的余额和转账金额
+    let encrypted_balance = FheUint32::encrypt(alice_balance, &client_key);
+    let encrypted_amount = FheUint32::encrypt(transfer_amount, &client_key);
+
+    // 4. 区块链验证：余额 >= 转账金额？
+    //   这是一个条件比较，可以在密文上执行
+    let can_transfer = encrypted_balance.ge(&encrypted_amount);
+
+    // 5. 如果验证通过，执行转账
+    //   新余额 = 原余额 - 转账金额
+    let new_balance = encrypted_balance - encrypted_amount;
+
+    // 6. 解密验证结果（只有 Alice 能解密）
+    let can_transfer_bool: bool = can_transfer.decrypt(&client_key);
+    let new_balance_value: u32 = new_balance.decrypt(&client_key);
+
+    println!("验证通过: {}", can_transfer_bool);  // true
+    println!("转账后余额: {} USDC", new_balance_value);  // 900 USDC
+
+    // 关键：区块链节点只知道验证通过/失败，不知道具体金额！
+}
+```
+
+## 机密 ERC-20 工作流程
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    机密 ERC-20 交易流程                      │
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│  1. 存款阶段                                                 │
+│     Alice 将 1000 USDC 存入合约                              │
+│     合约存储：address(Alice) -> E(1000)                      │
+│                    (加密余额)                                 │
+│                                                              │
+│  2. 转账阶段                                                 │
+│     Alice 发起转账：E(100) USDC 给 Bob                       │
+│     合约验证：E(1000) >= E(100)  ✓                          │
+│     合约更新：                                               │
+│       Alice: E(1000) -> E(900)                              │
+│       Bob:   E(0) -> E(100)                                 │
+│                                                              │
+│  3. 查询阶段                                                 │
+│     只有 Alice 能解密自己的余额                               │
+│     Bob 不知道 Alice 有多少钱                                 │
+│     任何人都可以验证交易有效性（但不透露金额）                 │
+│                                                              │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## 与 ZK 的对比
+
+| 特性 | FHE 方案 | ZK 方案（如 Tornado Cash） |
+|------|----------|---------------------------|
+| 隐藏内容 | 交易金额、余额 | 交易关联性（谁转给谁） |
+| 透明性 | 交易本身公开，金额加密 | 交易公开，无金额信息 |
+| 计算开销 | 高（密文运算） | 中等（证明生成） |
+| 适用场景 | 保密金额的转账 | 匿名混币 |
+
+:::tip FHE + ZK 组合
+实际应用中，FHE 和 ZK 可以组合使用：
+- **FHE**：保护交易金额隐私
+- **ZK**：证明交易有效性，避免双花
+
+这种组合既能保护隐私，又能确保区块链的安全性。
+:::
+
+## 实际应用案例
+
+| 项目 | 描述 | 技术 |
+|------|------|------|
+| Zama | 区块链加密层，支持机密智能合约 | TFHE |
+| Circle Confidential ERC-20 | 稳定币机密转账框架 | FHE |
+| Inco Network | 基于 FHE 的机密 EVM | FHE + ZK |
+
+## 关键点总结
+
+1. **金额加密**：交易金额和余额在整个过程中保持加密
+2. **可验证性**：验证者可以在不解密的情况下验证交易有效性
+3. **选择性披露**：只有拥有私钥的用户才能解密查看实际金额
+4. **合规性**：结合 ZK 可以实现监管可追溯性

@@ -1,0 +1,64 @@
+---
+sidebar_position: 1
+---
+
+# 性能优化
+
+## 参数选择指南
+
+### 关键参数
+
+| 参数 | 影响 | 建议值 |
+|------|------|--------|
+| poly_modulus_degree | 安全性、性能、内存 | 1024-65536 |
+| coeff_modulus | 噪声预算、运算深度 | 根据需求选择 |
+| plain_modulus | BFV 精度 | 1024-1073741824 |
+
+### 选择原则
+
+```
+安全优先 → 增大 poly_modulus_degree
+性能优先 → 减小 poly_modulus_degree
+支持深层电路 → 增大 coeff_modulus
+```
+
+## 批处理优化
+
+将多个数据打包到一个密文中，可大幅提升吞吐量：
+
+```rust
+// 未优化：每个值单独加密
+let ct1 = FheInt32::encrypt(1, &ck);
+let ct2 = FheInt32::encrypt(2, &ck);
+
+// 优化：使用 SIMD 批量加密
+// BFV 支持将 N 个整数打包到 1 个密文
+let batch = vec![1i32, 2, 3, 4, /* ... N 个值 */];
+let ct_batch = FheInt32::encrypt_batch(&batch, &ck);
+```
+
+## 并行化
+
+```rust
+// 使用 rayon 并行处理多个密文
+use rayon::prelude::*;
+
+let results: Vec<Ciphertext> = ciphertexts
+    .par_iter()
+    .map(|ct| ct.clone() + ct.clone()) // 并行加法
+    .collect();
+```
+
+## 运算优化技巧
+
+### 减少 Bootstrapping
+- 尽量用浅层电路
+- 预先计算部分结果
+
+### 避免频繁密文切换
+- 明文-密文乘法比密文-密文乘法快
+- 合理使用明文缩放
+
+### 内存管理
+- 复用密文对象
+- 及时释放不再使用的密文

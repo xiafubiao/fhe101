@@ -1,0 +1,210 @@
+---
+sidebar_position: 1
+---
+
+# 学习路径
+
+## 系统学习资源
+
+### 入门教程
+
+#### The Beginner's Textbook for FHE (2026) ⭐强烈推荐
+
+| 项目 | 内容 |
+|------|------|
+| **作者** | Ronny Ko (LG Electronics) |
+| **链接** | https://arxiv.org/abs/2503.05136 |
+| **页数** | 600+ 页 |
+| **语言** | 英文 |
+| **配书代码** | https://github.com/fhetextbook/fhe-textbook |
+
+**为什么推荐这本？**
+
+这是一本真正意义上的 FHE 入门教科书，从零基础开始：
+
+| 特点 | 说明 |
+|------|------|
+| 数学铺垫完整 | 模运算、群论、多项式、FFT/NTT 等 |
+| 四大方案全覆盖 | TFHE、BFV、CKKS、BGV 详解 |
+| 噪声分析深入 | 详细的噪声增长模型 |
+| RNS 优化变体 | 各方案的 RNS 高效实现 |
+| Python 演示 | 配书代码，边学边练 |
+
+**章节结构**：
+```
+第一部分：基础数学
+├── A-1~A-16: 模运算、群、域、多项式、FFT/NTT 等
+第二部分：后量子密码学
+├── B-1~B-6: LWE、RLWE、GLWE 体系
+第三部分：通用 FHE 操作
+├── C-1~C-5: 加法、乘法、密钥切换、模切换
+第四部分：四大 FHE 方案
+├── D-1~D-7: TFHE、BFV、CKKS、BGV 及对比
+```
+
+> **适合人群**
+> - 零基础入门者（有高中数学即可）
+> - 想系统理解 FHE 原理的开发者
+> - 需要深入理解噪声管理的工程师
+
+---
+
+### 官方文档
+
+| 资源 | 链接 | 语言 | 特点 |
+|------|------|------|------|
+| [OpenFHE Documentation](https://docs.openfhe.org/) | 官方文档 | 英文 | 最全面的 C++ FHE 库 |
+| [TFHE-rs Book](https://tfhe.github.io/tfhe/) | Rust 库文档 | 英文 | 文档优秀，示例丰富 |
+| [Microsoft SEAL Wiki](https://github.com/microsoft/SEAL/wiki) | C++ 库文档 | 英文 | 微软维护，BFV/CKKS |
+| [Concrete Documentation](https://docs.zama.ai/concrete) | Python TFHE | 英文 | Zama 出品，易上手 |
+
+---
+
+### 视频课程
+
+| 课程 | 来源 | 难度 | 说明 |
+|------|------|------|------|
+| [FHE Bootcamp by Zama](https://www.youtube.com/@zama-fhe) | YouTube | 入门~中级 | 官方视频教程 |
+| [OpenFHE Webinars](https://www.youtube.com/@OpenFHEorg) | YouTube | 中级 | 官方技术讲座 |
+| [CS 294 - Foundations of FHE](https://www.youtube.com/c/ChrisLuca) | UC Berkeley | 高级 | 学术级别课程 |
+
+---
+
+### 在线实践
+
+| 资源 | 链接 | 说明 |
+|------|------|------|
+| fhe-textbook Python | https://github.com/fhetextbook/fhe-textbook | 配论文的 Python 演示 |
+| TFHE-rs Examples | https://github.com/zama-ai/tfhe-rs/tree/main/examples | Rust 实战代码 |
+| OpenFHE Examples | https://github.com/openfheorg/openfhe-development/tree/main/examples | C++ 示例 |
+| Concrete Examples | https://github.com/zama-ai/concrete/tree/main/examples | Python 示例 |
+
+---
+
+## 推荐书籍
+
+### 入门级
+
+| 书名 | 作者 | 特点 |
+|------|------|------|
+| 《The Homomorphic Encryption Revolution》 | Craig Gentry | 发明者撰写，通俗易懂 |
+| 《Understanding Privacy via Homomorphic Encryption》 | 中文社区 | 知乎专栏，中文入门 |
+
+### 进阶级
+
+| 书名 | 作者 | 特点 |
+|------|------|------|
+| 《严肃的密码学：实用现代加密术》 | Jean-Philippe Aumasson | 密码学专著，FHE 章节 |
+| 《A Graduate Course in Applied Cryptography》 | Boneh & Shoup | 免费在线书籍，密码学经典 |
+
+---
+
+## 经典论文
+
+### 必读经典（按时间顺序）
+
+| 论文 | 年份 | 贡献 | 难度 |
+|------|------|------|------|
+| [Gentry - Fully Homomorphic Encryption using Ideal Lattices](https://dl.acm.org/doi/10.1145/1536414.1536440) | 2009 | **首创 FHE 方案** | 高 |
+| [BV - Efficient FHE from (Standard) LWE](https://eprint.iacr.org/2011/344) | 2011 | 标准 LWE 上的高效 FHE | 高 |
+| [BGV - Leveled FHE without Bootstrapping](https://eprint.iacr.org/2011/277) | 2012 | 层级式方案 | 中 |
+| [BFV - Somewhat Practical FHE](https://eprint.iacr.org/2012/144) | 2012 | 整数批处理方案 | 中 |
+| [GSW - Homomorphic Encryption from LWE](https://eprint.iacr.org/2013/340) | 2013 | 更简单的 FHE 构造 | 高 |
+| [CKKS - Approximate Number FHE](https://eprint.iacr.org/2016/421) | 2017 | 浮点近似方案 | 中 |
+| [TFHE - Fast FHE over the Torus](https://eprint.iacr.org/2018/421) | 2018 | 布尔电路快速 FHE | 中 |
+| [RNS - Efficient FHE in RNS](https://eprint.iacr.org/2016/585) | 2016 | RNS 优化 | 高 |
+
+### 论文阅读建议
+
+**入门阶段**：先读这本教科书，搞懂基本概念
+
+**进阶阶段**：
+1. 先读 Gentry 2009（理解开创性思想）
+2. 再读 TFHE 2018（理解现代实用方案）
+3. 根据需要选读具体方案论文
+
+> **注意**
+> 直接读原始论文通常比较困难，建议先通过教科书或官方文档理解核心概念再读。
+
+---
+
+## 学习建议
+
+### 推荐学习路径
+
+```
+阶段 1：入门（1-2 周）
+├── 1. 读 The Beginner's Textbook 前 3 部分
+├── 2. 运行 fhe-textbook Python 示例
+└── 3. 尝试 TFHE-rs 官方 examples
+
+阶段 2：实践（2-4 周）
+├── 1. 选择一个 FHE 库（推荐 TFHE-rs）
+├── 2. 实现简单的隐私计算（加法、乘法）
+├── 3. 实现一个隐私数据统计例子
+└── 4. 尝试运行简单的 ML 推理
+
+阶段 3：深入（持续）
+├── 1. 理解噪声管理和 Bootstrapping
+├── 2. 选择一个细分方向深入
+├── 3. 阅读相关论文
+└── 4. 参与社区讨论
+```
+
+### 学习技巧
+
+| 技巧 | 说明 |
+|------|------|
+| 边学边练 | 光看不练等于不会 |
+| 从 TFHE-rs 开始 | 文档最好，社区活跃 |
+| 理解噪声预算 | 这是 FHE 性能的核心 |
+| 不要死磕数学证明 | 理解核心思想即可 |
+| 关注最新进展 | 这个领域发展很快 |
+
+---
+
+## 社区资源
+
+| 社区 | 平台 | 说明 |
+|------|------|------|
+| FHE 开发者讨论 | [Reddit r/FHE](https://reddit.com/r/FHE) | 英文社区 |
+| Zama 社区 | [Discord](https://discord.gg/zama-fhe) | TFHE-rs 官方社区 |
+| 同态加密论坛 | [HomomorphicEncryption.org Forum](https://forum.homomorphicencryption.org/) | 学术社区 |
+| 中国 FHE 社区 | [微信群/知识星球] | 中文社区（需自行搜索） |
+
+---
+
+## 常见问题
+
+### Q: 需要多少数学基础？
+
+**最低要求**：
+- 高中数学（集合、模运算）
+- 了解一点线性代数（矩阵乘法）
+
+**进阶所需**：
+- 抽象代数基础（群、环、域）
+- 数论基础（欧拉函数、模运算）
+
+> **好消息**
+> The Beginner's Textbook 已经有完整的数学铺垫，不需要额外补数学。
+
+### Q: 哪个库最适合入门？
+
+**推荐顺序**：
+1. **TFHE-rs**：文档最友好，社区活跃，Rust 语言安全性好
+2. **Microsoft SEAL**：C++，微软维护，BFV/CKKS
+3. **OpenFHE**：C++，功能最全，支持所有主流方案
+
+### Q: FHE 开发需要密码学背景吗？
+
+**不需要深入**，但建议了解：
+- 对称加密 vs 非对称加密的基本概念
+- 公钥密钥体系（RSA 的思路）
+- 密钥、公钥、私钥的区别
+
+### Q: 如何验证 FHE 计算结果正确性？
+
+1. 用已知输入在明文上验证
+2. 对比 FHE 结果与明文结果
+3. 使用 ZK 做可验证计算（进阶）

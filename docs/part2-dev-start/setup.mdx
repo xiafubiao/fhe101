@@ -1,0 +1,57 @@
+---
+sidebar_position: 1
+---
+
+# 开发环境准备
+
+## 主流 FHE SDK 介绍
+
+| SDK | 语言 | 主要方案 | 特点 | 推荐场景 |
+|-----|------|----------|------|----------|
+| **OpenFHE** | C++ | BFV, CKKS, TFHE, FHEW | 功能最全面，工业级 | 生产环境 |
+| **Microsoft SEAL** | C++, C#, Python | BFV, CKKS | 微软维护，文档完善 | 学术研究 |
+| **TFHE-rs** | Rust | TFHE | 性能优秀，社区活跃 | 布尔运算、快速部署 |
+| **HEAAN** | C++ | CKKS | 适合浮点运算 | 机器学习场景 |
+| **PySEAL** | Python | BFV, CKKS | 易上手 | 快速原型验证 |
+
+## 环境要求
+
+- **操作系统**：Linux (Ubuntu 20.04+), macOS, Windows (WSL2)
+- **C++ 项目**：CMake 3.16+, GCC 9+
+- **Rust 项目**：Rust 1.60+
+- **Python 项目**：Python 3.8+
+
+## 快速开始：Hello FHE
+
+以 TFHE-rs 为例，5 分钟体验同态加密：
+
+```rust
+use tfhe::prelude::*;
+use tfhe::{generate_keys, set_server_key, ConfigBuilder};
+
+fn main() {
+    // 1. 配置参数
+    let config = ConfigBuilder::all_disabled()
+        .enable_default_integers()
+        .build();
+
+    // 2. 生成密钥
+    let (client_key, server_key) = generate_keys(config);
+
+    // 3. 在客户端加密
+    set_server_key(server_key);
+    let a = FheInt32::encrypt(42, &client_key);
+    let b = FheInt32::encrypt(1, &client_key);
+
+    // 4. 云端在密文上计算（不接触明文）
+    let result = &a + &b;
+
+    // 5. 客户端解密
+    let decrypted: i32 = result.decrypt(&client_key);
+    println!("42 + 1 = {}", decrypted); // 输出 43
+}
+```
+
+## 下一步
+
+接下来让我们深入了解 FHE 的核心概念。

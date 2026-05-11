@@ -1,0 +1,160 @@
+---
+sidebar_position: 2
+---
+
+# 高级主题
+
+## 非线性运算处理
+
+FHE 对非线性运算（比较、除法）的支持较弱，需要特殊技巧。
+
+### 比较运算
+
+密文比较是 FHE 应用中的核心难题，因为：
+
+- 加法、乘法：天然支持
+- 比较（大于、小于、等于）：需要转换为算术运算
+
+#### 符号位方法（Sign Bit Decryption）
+
+一种常用方法是比较两个数的差值：
+
+```python
+# 比较 x 和 y 是否 x > y
+# 等价于判断 (x - y) 的符号
+
+diff = x - y
+# 如果 diff > 0，则 x > y
+# 如果 diff < 0，则 x < y
+# 如果 diff = 0，则 x = y
+```
+
+问题是：FHE 密文比较不能直接得到布尔结果，需要特殊编码。
+
+#### 0-Encoding 和 1-Encoding 方法
+
+这是 Lin 等人提出的两轮解决方案，用于解决 Yao's Millionaires' Problem。
+
+**核心思想**：
+对于二进制串 `s = s_n s_{n-1} ... s_1`
+
+```
+0-encoding（S_s^0）：
+  将 s 中第一个 0 替换为 1，其余位不变
+  S_s^0 = { s_n ... s_{i+1} 1 s_i = 0, 1 ≤ i ≤ n }
+
+1-encoding（S_s^1）：
+  将 s 中第一个 1 替换为 1，其余位不变
+  S_s^1 = { s_n ... s_{i+1} 1 s_i = 1, 1 ≤ i ≤ n }
+```
+
+**比较原理**：
+- x > y 当且仅当 x 的 1-encoding 与 y 的 0-encoding 有公共元素
+
+```python
+# 简化示例（4位整数）
+x = 5 = 0101 (二进制)
+y = 3 = 0011 (二进制)
+
+# x > y 的条件编码
+x 的 1-encoding: {1101, 0111, 0100, 0101}
+y 的 0-encoding: {1011, 0010, 0001, 0000}
+
+# 检查是否有交集
+# 0101 ∈ x 的 1-encoding
+# 0101 ∈ y 的 0-encoding？是的（对应 i=4）
+# 有交集 → x > y 成立 ✓
+```
+
+### 除法运算
+
+FHE 中的除法需要用**倒数近似**实现：
+
+```python
+# 计算 x / y
+# 1. 近似计算 y 的倒数：y^(-1) ≈ 多项式逼近
+reciprocal = approximate_reciprocal(y, degree=3)
+# 2. 密文乘法
+result = x * reciprocal
+# 3. 注意：这是近似结果，精度有限
+```
+
+常用近似方法：
+- 牛顿迭代法
+- 泰勒级数展开
+- 切比雪夫多项式
+
+### ReLU 和神经网络激活函数
+
+在隐私机器学习中，激活函数是非线性运算的代表难题：
+
+```python
+# ReLU(x) = max(0, x)
+# 实现方式1：多项式逼近
+# ReLU(x) ≈ 0.5 * x + 0.5 * tanh(1.5 * x)
+
+# 实现方式2：分段函数
+# x > 0: ReLU(x) = x
+# x ≤ 0: ReLU(x) = 0
+
+# 实现方式3：CKKS 专用近似
+# 使用 Chebyshev 多项式逼近
+```
+
+## 可编程 FHE
+
+Modern FHE 支持用户自定义运算，无需预置特定函数：
+
+```rust
+// TFHE-rs: 定义自定义运算
+let custom_gelu = |x: &FheFloat| {
+    // GELU 激活函数的近似实现
+    0.5 * x * (1.0 + tanh(0.797884 * (x + 0.044715 * x * x * x)))
+};
+```
+
+```python
+# Concrete (Zama): FHE 友好的机器学习编译器
+# 自动将 PyTorch 模型转换为 FHE 可执行的近似版本
+from concrete import fhe
+import torch.nn as nn
+
+# 用户只需添加 @fhe decorator
+@fhe.compile
+def my_model(x):
+    return torch.sigmoid(x @ torch.tensor([[0.5]]))
+```
+
+## 前沿研究方向
+
+| 方向 | 描述 | 研究机构/团队 |
+|------|------|---------------|
+| **FHE + ZK** | 可验证同态计算 | Zama, ING Bank |
+| **FHE 硬件加速** | GPU/FPGA/ASIC 加速 | Intel, DARPA, Cornami |
+| **程序化 FHE** | 通用 FHE 编译器 | MOHE, E3 |
+| **多值 FHE** | 提升 SIMD 效率 | Microsoft Research |
+| **低延迟 FHE** | 减少端到端延迟 | Google, Meta |
+| **隐私 ML 训练** | FHE 友好的训练算法 | DeepMind, OpenMined |
+
+## 推荐阅读
+
+### 经典论文
+1. Gentry, C. (2009). [Fully Homomorphic Encryption Using Ideal Lattices](https://dl.acm.org/doi/10.1145/1536414.1536440)
+2. Brakerski, Z., & Vaikuntanathan, V. (2011). [Efficient Fully Homomorphic Encryption from (Standard) LWE](https://eprint.iacr.org/2011/344)
+3. Fan, J., & Vercauteren, F. (2012). [Somewhat Practical Fully Homomorphic Encryption](https://eprint.iacr.org/2012/144)
+4. Cheon, J., et al. (2017). [Homomorphic Encryption for Arithmetic of Approximate Numbers](https://eprint.iacr.org/2016/421)
+
+### 进阶资料
+| 资源 | 类型 | 难度 |
+|------|------|------|
+| [HomomorphicEncryption.org](https://homomorphicencryption.org) | 标准文档 | 中级 |
+| [Microsoft SEAL Wiki](https://github.com/microsoft/SEAL/wiki) | 库文档 | 中级 |
+| [OpenFHE Documentation](https://openfheorg.github.io/) | 库文档 | 中级 |
+| [TFHE-rs Book](https://tfhe.github.io/tfhe/) | 库文档 | 入门 |
+
+### 社区
+| 社区 | 平台 |
+|------|------|
+| FHE 开发者讨论 | [Reddit r/FHE](https://reddit.com/r/FHE) |
+| Zama 社区 | [Discord](https://discord.gg/zama-fhe) |
+| 同态加密论坛 | [HomomorphicEncryption.org Forum](https://forum.homomorphicencryption.org/) |
