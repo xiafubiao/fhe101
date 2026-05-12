@@ -229,7 +229,7 @@ FHE.allowTransient(encryptedValue, someAddress);
 
 ## 参考资料
 
-- [Zama fhEVM 官方文档](https://docs.zama.org/protocol/solidity-guides) —— 完整 API 参考
-- [fhEVM GitHub examples](https://github.com/zama-ai/fhevm/tree/main/examples) —— 官方示例合约
-- [fhEVM Quick Start Tutorial](https://docs.zama.org/protocol/solidity-guides/getting-started/quick-start-tutorial/turn_it_into_fhevm) —— 与本文教程对应的官方版本
-- [Zama 视频教程](https://www.zama.org/post/video-tutorial-how-to-write-confidential-smart-contracts-using-zamas-fhevm) —— 配套视频讲解
+- [Zama fhEVM 官方文档](https://docs.zama.org/protocol/solidity-guides)
+- [fhEVM GitHub examples](https://github.com/zama-ai/fhevm/tree/main/examples)
+- [fhEVM Quick Start Tutorial](https://docs.zama.org/protocol/solidity-guides/getting-started/quick-start-tutorial/turn_it_into_fhevm)
+- [Zama 视频教程](https://www.zama.org/post/video-tutorial-how-to-write-confidential-smart-contracts-using-zamas-fhevm)

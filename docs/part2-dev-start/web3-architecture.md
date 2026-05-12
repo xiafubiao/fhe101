@@ -167,6 +167,6 @@ _balances[to] = FHE.add(_balances[from], _balances[extra]);
 
 ## 延伸阅读
 
-- [Zama Confidential Blockchain Protocol Litepaper](https://docs.zama.org/protocol/zama-protocol-litepaper) —— Coprocessor/Gateway/KMS 架构的完整描述
-- [fhEVM Protocol Overview](https://docs.zama.org/protocol/protocol/overview) —— 各组件的职责说明
-- [Fhenix 技术博客](https://www.fhenix.io/blog) —— FHE L2 的架构思考
+- [Zama Confidential Blockchain Protocol Litepaper](https://docs.zama.org/protocol/zama-protocol-litepaper)
+- [fhEVM Protocol Overview](https://docs.zama.org/protocol/protocol/overview)
+- [Fhenix 技术博客](https://www.fhenix.io/blog)
