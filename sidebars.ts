@@ -34,7 +34,7 @@ const sidebars: SidebarsConfig = {
     },
     {
       type: 'category',
-      label: '第三部分：进阶开发',
+      label: 'FHE进阶',
       collapsed: true,
       items: [
         'part3-advanced/optimization',
