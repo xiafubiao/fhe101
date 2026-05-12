@@ -13,6 +13,7 @@ const sidebars: SidebarsConfig = {
       collapsed: false,
       items: [
         'part1-understand/intro',
+        'part1-understand/scheme-selection',
         'part1-understand/fhe-vs-others',
         'part1-understand/fhe-usecases',
       ],
@@ -23,10 +24,12 @@ const sidebars: SidebarsConfig = {
       collapsed: false,
       items: [
         'part2-dev-start/concepts',
+        'part2-dev-start/web3-architecture',
         'part2-dev-start/setup',
-        'part2-dev-start/tutorial-2',
         'part2-dev-start/tutorial-1',
+        'part2-dev-start/tutorial-2',
         'part2-dev-start/tutorial-3',
+        'part2-dev-start/fhevm-tutorial',
       ],
     },
     {
