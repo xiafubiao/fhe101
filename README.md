@@ -2,19 +2,21 @@
 
 全同态加密（Fully Homomorphic Encryption）开发者入门指南。
 
-## 在线文档
-
-访问 https://fhe101.dev 查看完整文档。
-
-## 本地开发
+## 本地预览
 
 ```bash
 # 安装依赖
 npm install
 
-# 本地预览
+# 启动开发服务器
 npm start
 ```
+
+访问 http://localhost:3000 查看文档。
+
+## 在线文档
+
+TODO: 配置 GitHub Pages 或其他托管服务后更新此处。
 
 ## 技术栈
 
