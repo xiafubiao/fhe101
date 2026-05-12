@@ -7,8 +7,6 @@ import type * as Preset from '@docusaurus/preset-classic';
 const config: Config = {
   title: 'FHE101',
   tagline: '全同态加密开发者入门指南',
-  favicon: 'img/favicon.ico',
-
   future: {
     v4: true,
   },
