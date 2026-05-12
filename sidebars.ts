@@ -35,7 +35,7 @@ const sidebars: SidebarsConfig = {
     {
       type: 'category',
       label: 'FHE进阶',
-      collapsed: true,
+      collapsed: false,
       items: [
         'part3-advanced/optimization',
         'part3-advanced/bootstrapping',
@@ -45,7 +45,7 @@ const sidebars: SidebarsConfig = {
     {
       type: 'category',
       label: '第四部分：资源与社区',
-      collapsed: true,
+      collapsed: false,
       items: [
         'part4-resources/learning-path',
         'part4-resources/tools',
