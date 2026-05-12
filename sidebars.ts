@@ -38,6 +38,7 @@ const sidebars: SidebarsConfig = {
       collapsed: true,
       items: [
         'part3-advanced/optimization',
+        'part3-advanced/bootstrapping',
         'part3-advanced/advanced-topics',
       ],
     },
