@@ -1,0 +1,135 @@
+---
+sidebar_position: 5
+---
+
+# Example 3: Building Your First FHE Application
+
+## Environment Setup
+
+This example uses **TFHE-rs** (Rust implementation), provided by Zama.
+
+### System Requirements
+
+| Item | Requirement |
+|------|------|
+| Operating System | Linux (Ubuntu 20.04+), macOS, Windows (WSL2) |
+| Memory | Minimum 8GB (16GB+ recommended) |
+| Rust | 1.60+ |
+
+### Installation Steps
+
+```bash
+# 1. Install Rust
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+source ~/.cargo/env
+
+# 2. Create project
+cargo new my-fhe-app
+cd my-fhe-app
+
+# 3. Add TFHE-rs dependency
+cargo add tfhe --features boolean,shortint,integer
+
+# 4. Build
+cargo build --release
+```
+
+### Notes
+
+> **warning** Long first build time
+>
+> TFHE-rs build time is relatively long. Recommend being patient or using pre-compiled Docker images.
+
+> **warning** Key Security
+>
+> - Private key (client_key) must never be sent to server
+> - Only send public key (public_key) and evaluation key (server_key) to server
+
+## Suggested Project Structure
+
+```
+my-fhe-app/
+├── src/
+│   ├── client/          # Client code (key generation, encryption, decryption)
+│   ├── server/          # Server code (ciphertext operations)
+│   └── common/          # Shared types and utilities
+├── tests/
+├── Cargo.toml
+└── README.md
+```
+
+## Building Applications with TFHE-rs
+
+### 1. Create Rust Project
+
+```bash
+cargo new my-fhe-app
+cd my-fhe-app
+```
+
+### 2. Add Dependencies
+
+```toml
+[dependencies]
+tfhe = { version = "0.6", features = ["integer", "borsh"] }
+```
+
+### 3. Complete Example: Private Voting System
+
+```rust
+use tfhe::prelude::*;
+use tfhe::{generate_keys, set_server_key, ConfigBuilder};
+use tfhe::integer::{FheUint8, ServerUint8};
+
+fn main() {
+    // === Server side (data collector) ===
+    let config = ConfigBuilder::default();
+    let (client_key, server_key) = generate_keys(config);
+    set_server_key(server_key);
+
+    // === Client side (voters) ===
+    // Assume three options: 0=against, 1=for, 2=abstain
+    let my_vote: u8 = 1; // I vote "for"
+
+    // Encrypt vote
+    let encrypted_vote = FheUint8::encrypt(my_vote, &client_key);
+
+    // === Server side: Tally votes ===
+    // Simulate 100 voters (simplified here)
+    let mut total_yes = encrypted_vote.clone();
+    let mut total_no = FheUint8::encrypt(0, &client_key);
+    let mut total_abstain = FheUint8::encrypt(0, &client_key);
+
+    // Batch processing (actually receives ciphertexts from network)
+    // Count yes votes
+    let is_yes = encrypted_vote.clone().eq(&FheUint8::encrypt(1, &client_key));
+    // ... actual needs conditional counting based on specific values
+
+    // === Server returns result ===
+    let result_ct = total_yes;
+
+    // === Client decrypts: View result ===
+    let result: u8 = result_ct.decrypt(&client_key);
+    println!("Yes votes: {}", result);
+}
+```
+
+## Next Step: Real Projects
+
+### Learning Path
+1. First run official examples
+2. Try modifying parameters and observing effects
+3. Implement your own business logic
+
+### Recommended Resources
+- [OpenFHE Examples](https://github.com/openfheorg/openfhe-development)
+- [TFHE-rs Book](https://tfhe.github.io/tfhe/)
+- [Microsoft SEAL Examples](https://github.com/microsoft/SEAL)
+
+## Common Issues
+
+| Issue | Solution |
+|------|----------|
+| Build too slow | Use `cargo build --release` |
+| Insufficient memory | Reduce poly_modulus_degree |
+| Insufficient precision | Choose larger parameters or CKKS

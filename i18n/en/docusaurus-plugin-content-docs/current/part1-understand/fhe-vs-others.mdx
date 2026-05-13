@@ -1,0 +1,104 @@
+# FHE vs ZK vs MPC: What Web3 Developers Need to Know
+
+> If you already understand Zero-Knowledge Proofs (ZK), this article helps you establish a clear boundary between FHE and ZK/MPC. This is the most worthwhile 10 minutes to spend before entering FHE development.
+
+## Start with the Conclusion
+
+These three technologies solve **fundamentally different problems**. They are not competing but complementary:
+
+| Technology | Core Capability | Solves What Problem |
+|------|----------|-------------|
+| **ZK (Zero-Knowledge Proof)** | Prove "I know something" without revealing details | **Verifiability**: Prove computation is correct but hide inputs |
+| **FHE (Fully Homomorphic Encryption)** | Directly compute on ciphertext, result is still ciphertext | **Computational Privacy**: Third party can participate in computation but cannot see data |
+| **MPC (Secure Multi-Party Computation)** | Multiple parties jointly compute, each only knows their own input | **Collaborative Computation**: Multiple mutually distrusting participants compute jointly |
+
+---
+
+## What ZK Solves vs What FHE Solves
+
+This is the most common confusion point for Web3 developers. An analogy:
+
+> **ZK is "presenting a certificate"**: You prove to a bank that your income exceeds a threshold, but don't tell the bank the specific amount. The bank can verify your conclusion is correct.
+>
+> **FHE is "delegating computation"**: You hand your encrypted financial data to an accounting firm to calculate your taxes for you, but they can't see your numbers throughout the entire process — they can only return the result to you.
+
+In more technical language:
+
+- **ZK**: Prover knows `x` such that `f(x) = y`, without revealing `x`. Verifier only confirms `y` and proof validity
+- **FHE**: Computing party, without knowing `x`, directly computes `Enc(f(x))`, and the result is returned to the data owner for decryption
+
+---
+
+## In Web3, When to Use Which?
+
+### Scenarios for Using ZK
+
+- **Proving state correctness** (core of rollup): Prove that off-chain executed n transactions and state transitions are legal
+- **Proving identity/qualification** (zkKYC): Prove you are > 18 without revealing birthday
+- **Proving possession**: Prove you hold an NFT without revealing wallet address
+
+ZK's keyword is **"prove"** — you want others to believe something is true without revealing more information.
+
+### Scenarios for Using FHE
+
+- **Private state computation**: On-chain contracts need to add/subtract encrypted balances, but no one (including nodes) can see the specific numbers
+- **Sealed auction**: Everyone submits encrypted bids, contract determines the highest price without decryption
+- **Private voting**: Contract counts votes without revealing who voted for whom
+- **Off-chain private AI**: Run machine learning models without exposing user data
+
+FHE's keyword is **"delegate computation"** — you have others compute for you but don't trust them with your data.
+
+### They Can Be Combined
+
+In fhEVM's implementation, ZK and FHE actually work together:
+
+- When users submit encrypted inputs, they need to attach a **ZK proof** (ZKPoK) proving they know the plaintext corresponding to the ciphertext
+- FHE is responsible for **executing encrypted computation** on-chain/coprocessor
+- Final results are securely restored among multiple nodes through **MPC (threshold decryption)**
+
+---
+
+## Where MPC Fits
+
+MPC typically appears in two scenarios:
+
+1. **Key management**: FHE private keys cannot be held by a single point (otherwise that node can decrypt everything). In fhEVM, private keys are sharded and stored across multiple key management nodes via MPC, and decryption requires threshold数量的 nodes to cooperate
+2. **Multi-party joint computation**: Multiple institutions (like multiple banks) each own partial data, use MPC for joint computation without leaking raw data to each other
+
+The difference between MPC and FHE: MPC usually requires multiple parties to be **simultaneously online** with multiple rounds of communication, while FHE allows **asynchronous single-party computation**, more suitable for blockchain's asynchronous environment.
+
+---
+
+## Performance Comparison (Rough Reference)
+
+| Technology | Computation Cost | Communication Cost | Data Size Expansion |
+|------|----------|----------|-------------|
+| ZK | Medium (slow proof generation, fast verification) | Low | Low |
+| FHE | High (1000x~100000x slower than plaintext) | Low (asynchronous, no multi-round) | High (ciphertext much larger than plaintext) |
+| MPC | Medium | High (multi-round interaction) | Low |
+
+> **tip** FHE's computation cost is the main bottleneck currently, but specialized hardware (GPU acceleration, ASIC) and Coprocessor architecture are rapidly improving this.
+
+---
+
+## Quick Decision Table
+
+```
+What is your need?
+│
+├── I need to prove something to others is true, without revealing more → ZK
+│
+├── I need others to help me compute, but cannot let them see my data → FHE
+│
+├── Multiple mutually distrusting institutions need to jointly compute a result → MPC
+│
+└── I need to perform business logic on encrypted user data on-chain → FHE (fhEVM)
+```
+
+---
+
+## Further Reading
+
+- [Fhenix Blog: FHE vs ZKP](https://www.fhenix.io/blog)
+- [Zama: What is fhEVM](https://docs.zama.org/protocol/protocol/overview)
+- [FHE.org Community](https://fhe.org)

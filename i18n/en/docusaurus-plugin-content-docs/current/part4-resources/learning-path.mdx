@@ -1,0 +1,184 @@
+---
+sidebar_position: 1
+---
+
+# Learning Path
+
+## Systematic Learning Resources
+
+### Getting Started Tutorials
+
+#### The Beginner's Textbook for FHE (2026) ⭐Strongly Recommended
+
+| Item | Content |
+|------|------|
+| **Author** | Ronny Ko (LG Electronics) |
+| **Link** | https://arxiv.org/abs/2503.05136 |
+| **Pages** | 600+ pages |
+| **Language** | English |
+| **Accompanying Code** | https://github.com/fhetextbook/fhe-textbook |
+
+**Why recommend this book?**
+
+This is a true FHE beginner textbook, starting from zero basics:
+
+| Feature | Description |
+|------|------|
+| Complete math foundation | Modular arithmetic, group theory, polynomials, FFT/NTT, etc. |
+| Coverage of all four major schemes | TFHE, BFV, CKKS, BGV detailed explanations |
+| In-depth noise analysis | Detailed noise growth model |
+| RNS optimization variants | RNS efficient implementations of each scheme |
+| Python demonstrations | Accompanying code, learn by practicing |
+
+**Chapter Structure**:
+```
+Part 1: Foundational Mathematics
+├── A-1~A-16: Modular arithmetic, groups, fields, polynomials, FFT/NTT, etc.
+Part 2: Post-Quantum Cryptography
+├── B-1~B-6: LWE, RLWE, GLWE systems
+Part 3: General FHE Operations
+├── C-1~C-5: Addition, multiplication, key switching, mod switching
+Part 4: Four Major FHE Schemes
+├── D-1~D-7: TFHE, BFV, CKKS, BGV and comparisons
+```
+
+> **Target Audience**
+> - Zero-baseline beginners (high school math sufficient)
+> - Developers wanting systematic understanding of FHE principles
+> - Engineers needing deep understanding of noise management
+
+---
+
+### Official Documentation
+
+| Resource | Link | Language | Features |
+|------|------|------|------|
+| [OpenFHE Documentation](https://docs.openfhe.org/) | Official docs | English | Most comprehensive C++ FHE library |
+| [TFHE-rs Book](https://tfhe.github.io/tfhe/) | Rust library docs | English | Excellent documentation, rich examples |
+| [Microsoft SEAL Wiki](https://github.com/microsoft/SEAL/wiki) | C++ library docs | English | Microsoft maintained, BFV/CKKS |
+| [Concrete Documentation](https://docs.zama.ai/concrete) | Python TFHE | English | From Zama, easy to get started |
+
+---
+
+### Video Courses
+
+| Course | Source | Difficulty | Description |
+|------|------|------|------|
+| [OpenFHE Webinars](https://openfhe.org/webinars/) | OpenFHE | Intermediate | Official technical lectures |
+
+---
+
+### Online Practice
+
+| Resource | Link | Description |
+|------|------|------|
+| fhe-textbook Python | https://github.com/fhetextbook/fhe-textbook | Python demos accompanying the paper |
+| TFHE-rs Examples | https://github.com/zama-ai/tfhe-rs/tree/main/examples | Rust practical code |
+| OpenFHE Examples | https://github.com/openfheorg/openfhe-development/tree/main/examples | C++ examples |
+| Concrete Examples | https://github.com/zama-ai/concrete/tree/main/examples | Python examples |
+
+---
+
+## Recommended Books
+
+### Beginner Level
+
+| Title | Author | Features |
+|------|------|------|
+| 《The Homomorphic Encryption Revolution》 | Craig Gentry | Written by the inventor, easy to understand |
+| 《Understanding Privacy via Homomorphic Encryption》 | Chinese community | Zhihu column, Chinese beginner |
+
+### Intermediate Level
+
+| Title | Author | Features |
+|------|------|------|
+| 《Serious Cryptography》 | Jean-Philippe Aumasson | Cryptography book, FHE chapters |
+| 《A Graduate Course in Applied Cryptography》 | Boneh & Shoup | Free online book, cryptography classic |
+
+---
+
+## Classic Papers
+
+### Must-Read Classics (Chronological)
+
+| Paper | Year | Contribution | Difficulty |
+|------|------|------|------|
+| [Gentry - Fully Homomorphic Encryption using Ideal Lattices](https://dl.acm.org/doi/10.1145/1536414.1536440) | 2009 | **First FHE scheme** | High |
+| [BV - Efficient FHE from (Standard) LWE](https://eprint.iacr.org/2011/344) | 2011 | Efficient FHE on standard LWE | High |
+| [BGV - Leveled FHE without Bootstrapping](https://eprint.iacr.org/2011/277) | 2012 | Leveled scheme | Intermediate |
+| [BFV - Somewhat Practical FHE](https://eprint.iacr.org/2012/144) | 2012 | Integer batch processing scheme | Intermediate |
+| [GSW - Homomorphic Encryption from LWE](https://eprint.iacr.org/2013/340) | 2013 | Simpler FHE construction | High |
+| [CKKS - Approximate Number FHE](https://eprint.iacr.org/2016/421) | 2017 | Floating-point approximate scheme | Intermediate |
+| [TFHE - Fast FHE over the Torus](https://eprint.iacr.org/2018/421) | 2018 | Fast boolean circuit FHE | Intermediate |
+| [RNS - Efficient FHE in RNS](https://eprint.iacr.org/2016/585) | 2016 | RNS optimization | High |
+
+### Paper Reading Suggestions
+
+**Beginner Phase**: First read this textbook, understand basic concepts
+
+**Intermediate Phase**:
+1. First read Gentry 2009 (understand pioneering ideas)
+2. Then read TFHE 2018 (understand modern practical schemes)
+3. Read specific scheme papers as needed
+
+> **Note**
+> Reading original papers directly is usually difficult. Recommend understanding core concepts through textbooks or official documentation first.
+
+---
+
+## Learning Suggestions
+
+### Recommended Learning Path
+
+```
+Phase 1: Getting Started (1-2 weeks)
+├── 1. Read first 3 parts of The Beginner's Textbook
+├── 2. Run fhe-textbook Python examples
+└── 3. Try TFHE-rs official examples
+
+Phase 2: Practice (2-4 weeks)
+├── 1. Choose an FHE library (recommend TFHE-rs)
+├── 2. Implement simple private computation (addition, multiplication)
+├── 3. Implement a private data statistics example
+└── 4. Try running simple ML inference
+
+Phase 3: Deep Dive (ongoing)
+├── 1. Understand noise management and Bootstrapping
+├── 2. Choose a sub-direction to dive deep
+├── 3. Read related papers
+└── 4. Participate in community discussions
+```
+
+---
+
+## Common Questions
+
+### Q: How much math background is needed?
+
+**Minimum requirements**:
+- High school math (sets, modular arithmetic)
+- Some linear algebra knowledge (matrix multiplication)
+
+**Advanced requirements**:
+- Foundational abstract algebra (groups, rings, fields)
+- Number theory foundations (Euler's function, modular arithmetic)
+
+### Q: Which library is best for beginners?
+
+**Recommended order**:
+1. **TFHE-rs**: Most friendly documentation, active community, Rust's safety
+2. **Microsoft SEAL**: C++, Microsoft maintained, BFV/CKKS
+3. **OpenFHE**: C++, most feature-rich, supports all mainstream schemes
+
+### Q: Do I need cryptography background for FHE development?
+
+**No deep knowledge needed**, but recommend understanding:
+- Basic concepts of symmetric vs asymmetric encryption
+- Public key cryptosystem (RSA approach)
+- Difference between keys, public keys, private keys
+
+### Q: How to verify FHE computation correctness?
+
+1. Verify with known inputs on plaintext
+2. Compare FHE results with plaintext results
+3. Use ZK for verifiable computation (advanced)

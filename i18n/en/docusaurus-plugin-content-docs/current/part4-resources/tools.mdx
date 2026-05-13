@@ -1,0 +1,52 @@
+---
+sidebar_position: 2
+---
+
+# Developer Tools
+
+## Online Playground
+
+| Tool | Link | Purpose |
+|------|------|------|
+| TFHE-rs Official Examples | https://github.com/zama-ai/tfhe-rs/tree/main/examples | Official example code |
+| OpenFHE Webinars | YouTube | Official video tutorials |
+
+## Performance Estimation
+
+### Online Tools
+- [OpenFHE Official Website](https://www.openfhe.org) - Official docs and examples
+- [Zama Official Website](https://www.zama.ai) - TFHE-rs and Concrete
+
+### Command Line Tools
+
+```bash
+# View OpenFHE benchmarks
+./openfhe/bin/benchmark
+
+# View SEAL performance
+dotnet run --project SEALExamples
+```
+
+## Common Libraries
+
+### C++ Ecosystem
+- [OpenFHE](https://github.com/openfheorg/openfhe-development) - Full-featured FHE library
+- [Microsoft SEAL](https://github.com/microsoft/SEAL) - BFV/CKKS
+- [HEAAN](https://github.com/snucrypto/HEAAN) - CKKS optimized
+
+### Rust Ecosystem
+- [TFHE-rs](https://github.com/zama-ai/tfhe-rs) - Boolean FHE
+- [FHE.rs](https://github.com/FHE-org/fhe.rs) - Rust FHE ecosystem
+
+### Python Ecosystem
+- [PySEAL](https://pypi.org/project/pyseal/) - SEAL Python bindings
+- [TenSEAL](https://github.com/OpenMined/TenSEAL) - CKKS Python bindings
+- [Concrete](https://github.com/zama-ai/concrete) - TFHE Python
+
+## IDE Recommendations
+
+| IDE | Plugins | Purpose |
+|-----|------|------|
+| VS Code | rust-analyzer, C++ IntelliSense | Primary development |
+| CLion | CMake, Rust | Large projects |
+| Jupyter | PySEAL | Quick experiments |

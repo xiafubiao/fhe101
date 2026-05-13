@@ -1,0 +1,564 @@
+---
+sidebar_position: 2
+---
+
+# FHE Core Concepts
+
+## Key System
+
+FHE has three types of keys. Understanding them is the foundation of mastering FHE:
+
+```
+┌─────────────────────────────────────────────────┐
+│                  Key System                       │
+├─────────────────────────────────────────────────┤
+│  Public Key                                     │
+│    └── Used to encrypt data, derived from       │
+│        private key                               │
+│                                                  │
+│  Private Key (Secret Key / Client Key)          │
+│    └── Used to decrypt data, kept by user       │
+│                                                  │
+│  Evaluation Key (Server Key)                    │
+│    └── Used for ciphertext operations,          │
+│        held by cloud                             │
+└─────────────────────────────────────────────────┘
+```
+
+## Complete Flow
+
+### Step 1: Key Generation
+
+```python
+# Client generates key pair
+client_key = generate_client_key()
+server_key = generate_server_key(client_key)
+
+# Public key sent to cloud (evaluation key)
+# Private key kept by client, never leaked
+```
+
+### Step 2: Encryption
+
+```python
+# Client encrypts sensitive data
+plaintext = 42
+ciphertext = encrypt(client_key, plaintext)
+
+# Encrypted ciphertext sent to cloud
+send_to_cloud(ciphertext)
+```
+
+### Step 3: Evaluation
+
+```python
+# Cloud executes computation on ciphertext
+# Note: Cloud doesn't know actual values
+result = ciphertext_a + ciphertext_b  # Addition
+result = ciphertext_a * ciphertext_b  # Multiplication
+```
+
+### Step 4: Decryption
+
+```python
+# Cloud returns computation result
+response = receive_from_cloud(result)
+
+# Client decrypts with private key
+final_result = decrypt(client_key, response)
+# final_result = actual computation result
+```
+
+---
+
+## FHE Computation Principle
+
+### Essence of Encryption: Ciphertext with Noise
+
+Encrypted data is not "clean" ciphertext but contains a layer of "noise":
+
+```
+Ciphertext = real data + noise  (mod q)
+```
+
+Taking LWE encryption as an example:
+```
+b = a·s + Δm + e  (mod q)
+
+Where:
+- a: Random public key coefficient (vector)
+- s: Private key (vector)
+- Δ = q/t: Plaintext scaling factor (t is plaintext modulus)
+- m: Original data
+- e: Noise (usually small random number, usually |e| < q/2)
+- q: Ciphertext modulus (a large integer)
+```
+
+> **Why is there noise?**
+> Noise is the foundation of cryptographic security. LWE problem's security relies on the mathematical difficulty of "distinguishing ciphertext from random noise." No known polynomial-time algorithm can efficiently solve this problem even on quantum computers.
+
+### Addition Operation
+
+Adding two ciphertexts directly sums the plaintext results:
+
+```
+E(m₁) = (a₁, b₁)  where b₁ = a₁·s + Δm₁ + e₁
+E(m₂) = (a₂, b₂)  where b₂ = a₂·s + Δm₂ + e₂
+
+E(m₁) + E(m₂) = (a₁+a₂, b₁+b₂)
+               = ((a₁+a₂)·s + Δ(m₁+m₂) + (e₁+e₂))
+               = E(m₁ + m₂)
+```
+
+**Characteristics**:
+- Ciphertext components directly added
+- Plaintext result = m₁ + m₂
+- Noise accumulates: e' = e₁ + e₂ (linear growth)
+- Operation is fast, comparable to ordinary integer addition
+
+### Multiplication Operation
+
+Ciphertext multiplication is much more complex than addition, requiring **Gadget Decomposition**.
+
+**Problem**: If directly multiplying two ciphertexts
+```
+b₁·b₂ = (a₁·s + Δm₁ + e₁)(a₂·s + Δm₂ + e₂)
+       = a₁a₂·s² + Δm₁a₂·s + Δm₂a₁·s + Δ²m₁m₂ + ...(noise terms)
+```
+
+This produces **s² terms** which cannot be decrypted with the original key s.
+
+**Solution: Gadget Decomposition**
+
+Decompose large values into linear combinations of small components:
+```
+Λ = Λ₁·(q/β₁) + Λ₂·(q/β₂) + ... + Λₗ·(q/βₗ)
+   = Decomp_{β,ₗ}(Λ) · (q/β₁, q/β₂, ..., q/βₗ)ᵀ
+```
+
+Where Decomp is the decomposition function, each Λᵢ is a small integer (usually < βᵢ).
+
+Through decomposition, the s² terms in ciphertext multiplication can be transformed into manageable form, then eliminated using **Key Switching**.
+
+**Multiplication Result**:
+```
+E(m₁) × E(m₂) = E(m₁ × m₂)
+```
+
+**Characteristics**:
+- Noise grows multiplicatively: e' ≈ m₁·e₂ + m₂·e₁ + e₁·e₂ (grows much faster than addition)
+- Requires Key Switching to handle s² terms
+- Requires periodic Bootstrapping to clear noise
+
+### Key Switching
+
+Without decrypting, switch ciphertext from key s₁ to s₂:
+
+```
+GLWE_{s₁}(Δm + e)  --Key Switch-->  GLWE_{s₂}(Δm + e')
+```
+
+**Uses**:
+- Eliminate s² terms after multiplication
+- Support cascading of circuits with different depths
+- Convert ciphertext between different key systems
+
+### Mod Switching
+
+Scale ciphertext modulus from q to q' (usually q' < q):
+
+```
+â = ⌈a·q'/q⌋  (mod q')
+b̂ = ⌈b·q'/q⌋  (mod q')
+```
+
+**Effect**:
+- Noise relatively smaller (ratio of noise/q changes)
+- Can control noise vs precision tradeoff
+- Used in leveled FHE (BGV) to reduce key size
+
+---
+
+## Introduction to Bootstrapping
+
+### Why is Bootstrapping Needed?
+
+Every ciphertext operation accumulates noise. Multiplication is especially severe. When noise exceeds the threshold, decryption fails.
+
+You can think of noise as a **computation budget** — each multiplication consumes budget, and when the budget is exhausted, no more multiplications can be done.
+
+**Bootstrapping's role**: "Re-encrypt" before the budget runs out, clearing noise to zero, restoring budget, thus supporting unlimited computations. This is the meaning of "Fully" in "Fully Homomorphic."
+
+### Core Idea of Bootstrapping
+
+Bootstrapping "executes the decryption operation" on ciphertext. Its essence is **homomorphic decryption**:
+
+```
+Old ciphertext (high noise) + Homomorphic decryption = New ciphertext (low noise)
+```
+
+Key insight: All operations in the decryption formula (subtraction, multiplication) are supported by FHE. The only problem is the rounding operation. But rounding can be approximated, and noise is "digested" during the approximation process rather than passed to the output.
+
+### TFHE's Advantage
+
+TFHE (the scheme used by fhEVM) made special optimizations: **Automatically triggers a lightweight Bootstrapping after each gate operation**, noise never accumulates.
+
+This means developers don't need to manually manage noise — TFHE handles it automatically.
+
+### Quick Comparison
+
+| Scheme | Bootstrapping Characteristics |
+|------|-------------------|
+| TFHE | Auto-trigger per gate, fastest, supports arbitrary functions |
+| BFV/BGV | Requires manual multiplicative depth management |
+| CKKS | Bootstrapping slowest, used for ML scenarios |
+
+> **tip** If you're writing contracts with fhEVM, you don't need to care about Bootstrapping — TFHE handles it automatically, fully transparent to developers.
+
+---
+
+## Comparison of Four FHE Schemes
+
+### Scheme Overview
+
+| Scheme | Year | Based On | Data Type | Precision | Suitable Scenarios |
+|------|------|------|----------|------|----------|
+| **TFHE** | 2018 | GLWE/LWE | Integer (bitwise) | Exact | Boolean circuits, deep circuits |
+| **BFV** | 2012 | RLWE | Integer | Exact | Integer operations, batch processing |
+| **CKKS** | 2017 | RLWE | Complex/real | Approximate | Machine learning, signal processing |
+| **BGV** | 2012 | RLWE | Integer | Exact | Leveled, shallow circuits |
+
+---
+
+### TFHE (FHE on the Torus)
+
+**Core Characteristics**:
+- Based on GLWE and LWE
+- Designed specifically for **boolean circuits**
+- Bootstrapping **fastest**
+- Suitable for **deep circuit** scenarios
+
+**Encryption Structure**:
+```
+LWE Ciphertext: (a₁, a₂, ..., aₙ, b)
+                b = Σ(aᵢ·sᵢ) + Δm + e  (mod q)
+
+Each coefficient is an integer modulo q
+```
+
+**Suitable Scenarios**:
+- Frequent bootstrapping needed
+- Comparison operations, arbitrary logic gates
+- Neural network activation functions (ReLU, MaxPool, Sigmoid)
+- Private data queries
+
+**Representative Libraries**: TFHE-rs (Zama), OpenFHE
+
+---
+
+### BFV (Integer Batch Processing)
+
+**Core Characteristics**:
+- Based on RLWE
+- **Integer operations**, exact results
+- **Batch encoding**: Pack multiple integers into one ciphertext
+- Suitable for **shallow circuits**
+
+**Batch Encoding**:
+```
+Plaintext vector: [m₁, m₂, m₃, ..., mₙ]
+                       ↓ batch encoding (slot encoding)
+Single ciphertext: Can perform homomorphic operations on all mᵢ at once
+
+Advantage: Throughput improved N times (N = poly_modulus_degree)
+```
+
+**Suitable Scenarios**:
+- Data aggregation, statistical computation (sum, average)
+- Polynomial evaluation
+- Private database queries
+- Fixed-depth circuits
+
+**Representative Libraries**: Microsoft SEAL, OpenFHE
+
+---
+
+### CKKS (Approximate Computation FHE)
+
+**Core Characteristics**:
+- **Floating-point operations**, supports complex/real numbers
+- Result is **approximate** (has precision loss)
+- **Batch processing**: Parallel operations on vectors
+- Designed specifically for **machine learning**
+
+**Encoding Method**:
+```
+Complex vector [z₁, z₂, ..., zₙ]
+          ↓ CKKS encoding (amplify, flatten)
+Polynomial m(X)  --- coefficient encoding
+          ↓ encryption
+Ciphertext
+
+Decoding requires scaling back to original scale
+```
+
+**Precision Control**:
+```
+Plaintext scaling factor Δ = q/t
+Precision ≈ log₂(Δ) bits
+Example: Δ = 2⁴⁰ ≈ 1 trillion, precision about 40 decimal digits
+
+Noise level is usually on the order of Δ/2
+```
+
+**Suitable Scenarios**:
+- Machine learning inference (matrix multiplication, convolution)
+- Neural network forward propagation
+- Signal processing
+- Scientific computing (solving differential equations)
+
+**Representative Libraries**: HEAAN, SEAL, OpenFHE
+
+**Note**: Bootstrapping is slowest because it requires approximating sine function evaluation.
+
+---
+
+### BGV (Leveled FHE)
+
+**Core Characteristics**:
+- Based on RLWE
+- **Leveled design**: Pre-set multiplicative depth L
+- **Mod switching** instead of partial Bootstrapping
+- Suitable for **fixed-depth circuits**
+
+**Difference from BFV**:
+- BFV: Requires Bootstrapping to support arbitrary depth
+- BGV: Pre-set depth, controls noise with mod switching, can perform L multiplications without Bootstrapping
+
+**Suitable Scenarios**:
+- Applications with known computation depth
+- Fixed model size ML inference
+- Suitable for one-time deployment of fixed-depth circuits
+
+**Representative Libraries**: OpenFHE, HElib
+
+---
+
+### Scheme Selection Decision Tree
+
+```
+What type of operation do you need?
+│
+├─ Boolean/bitwise operations (comparison, logic gates, ReLU) → TFHE
+│   └─ Suitable for deep circuits, needs fast Bootstrapping
+│
+├─ Integer operations (statistics, aggregation, add/multiply) → BFV or BGV
+│   │
+│   ├─ Shallow circuits, data aggregation → BFV
+│   │   └─ High batch efficiency, exact results
+│   │
+│   └─ Need pre-set depth, mod switching optimization → BGV
+│       └─ No Bootstrapping needed, better performance
+│
+└─ Floating-point operations (ML inference, signal processing) → CKKS
+    └─ Approximate computation, high batch efficiency, suitable for neural networks
+```
+
+---
+
+### An Analogy
+
+| Scheme | Analogy | Suitable Scenarios |
+|------|------|----------|
+| **TFHE** | Like building with blocks, each logic gate built separately | Complex arbitrary circuits, deep operations, activation functions like ReLU |
+| **BFV** | Like processing a whole batch of goods at once | Data statistics, aggregation, private queries |
+| **CKKS** | Like a precision calculator, handles floating-point numbers | Machine learning inference, signal processing |
+| **BGV** | Like a pre-set depth pipeline | Fixed-depth circuits, knowing in advance how many layers to run |
+
+---
+
+### Performance Comparison
+
+| Characteristic | TFHE | BFV | CKKS | BGV |
+|------|------|-----|------|-----|
+| Data Type | Integer (bit) | Integer | Complex/real | Integer |
+| Precision | Exact | Exact | Approximate | Exact |
+| Batch Processing | Limited | Strong | Strong | Strong |
+| Bootstrapping Speed | Fastest | Relatively slow | Slowest | Medium |
+| Multiplication Cost | High | Medium | Medium | Medium |
+| Key Size | Small | Large | Large | Medium |
+| Ciphertext Size | Medium | Medium | Medium | Medium |
+
+> **Practical Selection Advice**
+> - **Unsure which to choose**: Start with TFHE-rs, its documentation is most friendly
+> - **Machine learning scenarios**: Use CKKS (recommend HEAAN or OpenFHE)
+> - **Statistical analysis scenarios**: Use BFV (recommend Microsoft SEAL)
+> - **Complex logical judgment**: Use TFHE (recommend TFHE-rs)
+
+---
+
+## FHE Combined with Other Technologies
+
+| Combination | Effect |
+|------|------|
+| **FHE + ZK** | Verifiable homomorphic computation: prove operations executed correctly |
+| **FHE + MPC** | Key sharding: private key held by multiple parties, reducing single point risk |
+| **FHE + TEE** | Acceleration + security: TEE protects computation process, FHE ensures data encryption |
+
+---
+
+## Key Parameter Selection
+
+| Parameter | Impact | Recommendation |
+|------|------|------|
+| poly_modulus_degree | Security, performance, memory | 1024~65536, larger = more secure but slower |
+| coeff_modulus | Noise budget, multiplication depth | Choose based on needs, larger = higher noise budget |
+| plain_modulus | Precision (BFV) | Larger = higher precision but reduces security margin |
+| level | Allowed multiplication count | Estimate circuit depth, BGV needs pre-setting |
+
+> **Practical Advice**
+> Parameter selection requires balancing security, performance, and functionality. Recommendations:
+> 1. Beginners use library-recommended default parameters
+> 2. Production environments refer to HomomorphicEncryption.org standards
+> 3. Use official tools (like OpenFHE's FHEWDepthFinder) to calculate secure parameters
+> 4. Avoid setting insecure parameter combinations yourself
+
+---
+
+## Noise and Decentralized Key Management
+
+### I. Noise: FHE's "Computation Budget"
+
+#### Why is there noise?
+
+FHE's security is based on the difficulty of the **LWE (Learning With Errors)** problem. Simply put, during encryption, random noise is intentionally injected into the ciphertext to prevent attackers from extracting information from it.
+
+But this noise has a problem: **Every homomorphic computation increases the noise**.
+
+- Addition: Noise grows small
+- Multiplication: Noise grows large (roughly doubles)
+
+When noise exceeds a threshold, decryption fails — like a test paper that has been corrected too many times and the original answers can no longer be seen.
+
+#### Noise Intuition: Think of it as a "Computation Budget"
+
+```
+New ciphertext:        [small noise]  ████░░░░░░░░░░░░░░░░░░  Security margin
+After one addition:    [slightly larger]  ██████░░░░░░░░░░░░░░░░  Security margin
+After one multiplication: [larger noise]  ██████████░░░░░░░░░░░░  Security margin
+After another multiplication: [near limit] ████████████████░░░░  Security margin
+Over budget (error): [noise overflow]  ████████████████████████ Security margin (overflow!)
+```
+
+You can think of noise as **a bucket of water, each operation adds water to it, and when it's full, it overflows**.
+
+#### Multiplicative Depth
+
+How many multiplications you can perform depends on the "multiplicative depth" limit set by parameters. This is one of the core constraints in FHE development:
+
+```solidity
+// In fhEVM you don't need to manually manage noise,
+// Coprocessor handles it off-chain automatically,
+// But if you use TFHE-rs directly, you need to understand depth limitations
+```
+
+#### Bootstrapping: "Reset" the Noise
+
+To break through the multiplicative depth limitation, Gentry proposed **Bootstrapping** in 2009: By homomorphically decrypting the ciphertext itself, the noise is "refreshed" to a very small value, allowing computation to continue.
+
+The cost is: Bootstrapping is currently the slowest operation in FHE, possibly taking hundreds of milliseconds to several seconds.
+
+**For fhEVM developers**: The good news is that TFHE automatically bootstraps after each gate operation (this is one of TFHE's design features), so you don't need to manually manage when writing Solidity contracts.
+
+---
+
+### II. Key Management: Special Challenges in Decentralized Environments
+
+#### Traditional FHE Key Model
+
+Traditional FHE works like this:
+
+```
+User  →  Encrypt data with public key  →  Server does homomorphic computation  →  User decrypts result with private key
+```
+
+The problem: **The private key must be held by the user themselves**. This is fine in centralized scenarios, but on blockchain it brings serious challenges — if no one holds the private key, who decrypts the contract state?
+
+#### Dilemma in Decentralized Environments
+
+Imagine a private voting contract:
+
+- During voting, balances should be confidential (to prevent affecting subsequent voters)
+- After voting ends, results need to be decrypted and published
+- **But who decrypts?** If it's the contract deployer, they can peek at results during voting
+
+This is a typical **trust assumption problem**.
+
+#### Solution: Threshold Decryption
+
+fhEVM's solution uses **MPC + threshold cryptography**:
+
+```
+                     ┌──────────────────────────────┐
+                     │       Key Management System (KMS) │
+                     │                              │
+User                  │  NodeA  NodeB  NodeC  NodeD  │
+ │                   │   sk₁    sk₂    sk₃    sk₄  │
+ │  Encrypt with     │          (private key shards) │
+global public key    └──────────────────────────────┘
+ └──────────────────▶│  Decryption requires ≥ 3/4 nodes to participate
+```
+
+Core ideas:
+1. **Global public key**: Everyone encrypts data with the same public key, which is public
+2. **Private key sharding**: Private key is split into multiple shares, held by independent nodes. No single node can independently decrypt
+3. **Threshold decryption**: Only when enough nodes (e.g., 3/4) participate together can decryption occur
+
+This achieves: **No single point can peek at encrypted data, but legitimate decryption requests can be fulfilled**.
+
+#### Specific Manifestation in fhEVM
+
+fhEVM's ACL (Access Control List) system manages "who can request decryption":
+
+```solidity
+// Allow contract itself to access this ciphertext
+FHE.allowThis(encryptedValue);
+
+// Allow specific address (e.g., user) to view their own data off-chain
+FHE.allow(encryptedValue, msg.sender);
+
+// Decryption doesn't happen on-chain — it happens via Gateway coordinating KMS nodes
+```
+
+#### What Developers Need to Know
+
+As an fhEVM developer, you don't need to implement threshold key management directly. But you need to understand:
+
+1. **All encrypted data shares one global public key**: Different users' ciphertexts can be computed on each other in contracts (because encrypted with the same public key)
+2. **Decryption happens off-chain**: After contract requests decryption, Gateway coordinates KMS nodes, result returned asynchronously
+3. **ACL controls decryption permissions**: You must explicitly authorize who can see which ciphertext's plaintext
+
+---
+
+### III. The "Size" Problem of Ciphertexts
+
+FHE ciphertexts are much larger than plaintext, which affects your contract design:
+
+| Data | Plaintext Size | FHE Ciphertext Size (Reference) |
+|------|----------|---------------------|
+| uint32 (balance) | 4 bytes | ~1-4 KB |
+| One boolean | 1 bit | ~1 KB |
+
+**Practical Impact**:
+- On-chain storage costs higher (but ciphertext usually stored off-chain, only handles stored on-chain)
+- When transmitting encrypted inputs, users need to pass larger data packets
+
+In fhEVM, you operate on **ciphertext handles**, not actual ciphertexts. On-chain storage is the handle (a 32-byte reference), actual ciphertext managed by Coprocessor.
+
+---
+
+## Further Reading
+
+- [FHE Beginner's Textbook (arxiv 2503.05136)](https://arxiv.org/pdf/2503.05136)
+- [Zama Protocol Overview](https://docs.zama.org/protocol/protocol/overview)
+- [Bootstrapping in FHE (Duality Tech)](https://dualitytech.com/blog/bootstrapping-in-fully-homomorphic-encryption-fhe/)

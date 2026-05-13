@@ -1,0 +1,53 @@
+---
+sidebar_position: 3
+---
+
+# Frequently Asked Questions (FAQ)
+
+## Basic Questions
+
+### Q: What is the difference between FHE and traditional encryption?
+Traditional encryption (like AES) can only protect stored data and must be decrypted during computation. FHE allows direct computation on ciphertext, with data remaining encrypted throughout.
+
+### Q: Why is FHE performance so slow?
+Mathematical security guarantees require complex ciphertext structure, and each operation has additional overhead. This is the cost of cryptographic security.
+
+### Q: Can FHE be used for blockchain?
+Yes, but performance trade-offs are needed. Common approach is using FHE to protect private transactions and ZK to prove transaction validity.
+
+## Technical Questions
+
+### Q: How to choose between BFV, CKKS, or TFHE?
+
+| Scenario | Recommended Scheme |
+|------|----------|
+| Integer statistics, aggregation | BFV |
+| Floating-point operations, ML inference | CKKS |
+| Boolean comparison, function evaluation | TFHE |
+
+### Q: What is noise? Do I need to care about it?
+Noise is the foundation of FHE security. In actual development, mainstream SDKs manage it automatically, but you need to understand:
+- Operations accumulate noise
+- Too much noise causes decryption failure
+- Bootstrapping can "reset" noise
+
+### Q: Can FHE do machine learning training?
+Currently mainly inference. Training requires many iterations and performance is still a challenge. Some research is exploring FHE-friendly training methods.
+
+## Development Questions
+
+### Q: Which SDK is best for beginners?
+Recommend **TFHE-rs** or **PySEAL**:
+- TFHE-rs: Good documentation, excellent performance
+- PySEAL: Python ecosystem, easy to get started
+
+### Q: Do I need cryptography background for FHE development?
+No deep knowledge needed. But recommend understanding:
+- Basic number theory (modular arithmetic)
+- Key system (public key/private key)
+- Concept of noise
+
+### Q: How to verify FHE computation correctness?
+1. Verify with known inputs on plaintext
+2. Compare FHE results with plaintext results
+3. Use ZK for verifiable computation (advanced)

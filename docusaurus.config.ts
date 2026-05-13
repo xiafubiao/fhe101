@@ -7,6 +7,7 @@ import type * as Preset from '@docusaurus/preset-classic';
 const config: Config = {
   title: 'FHE101',
   tagline: '全同态加密开发者入门指南',
+  favicon: 'img/favicon.png',
   future: {
     v4: true,
   },
@@ -39,7 +40,17 @@ const config: Config = {
 
   i18n: {
     defaultLocale: 'zh-Hans',
-    locales: ['zh-Hans'],
+    locales: ['zh-Hans', 'en'],
+    localeConfigs: {
+      'en': {
+        label: 'English',
+        direction: 'ltr',
+      },
+      'zh-Hans': {
+        label: '中文',
+        direction: 'ltr',
+      },
+    },
   },
 
   themeConfig: {
@@ -61,7 +72,7 @@ const config: Config = {
           label: '文档',
         },
         {
-          href: 'https://github.com/fhe101',
+          href: 'https://github.com/xiafubiao/fhe101',
           label: 'GitHub',
           position: 'right',
         },

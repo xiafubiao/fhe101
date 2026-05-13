@@ -1,0 +1,85 @@
+---
+sidebar_position: 1
+---
+
+# What is Homomorphic Encryption?
+
+## Starting with "Data Outsourcing"
+
+Imagine you have a sensitive medical report and want cloud-based AI to analyze it, but you don't want the cloud to see the report's contents. What do you do?
+
+Traditional encryption: Data is encrypted and stored in the cloud, but the cloud **cannot perform any operations on the encrypted data**. To analyze it? You must decrypt first.
+
+**Homomorphic Encryption**: A special encryption technique that allows the cloud to directly perform operations on **ciphertext**, and the decrypted result exactly equals the result of performing operations directly on the plaintext.
+
+## The Homomorphic Encryption Family
+
+Homomorphic encryption didn't appear overnight. It went through a long technological evolution:
+
+| Type | Abbreviation | Description | Representative Schemes |
+|------|------|------|----------|
+| Partially Homomorphic Encryption | PHE | Supports only addition OR multiplication | RSA, Paillier |
+| Somewhat Homomorphic Encryption | SWHE | Supports limited additions and multiplications | BGN |
+| **Fully Homomorphic Encryption** | **FHE** | Supports unlimited additions and multiplications | BFV, CKKS, TFHE |
+
+### Limitations of Partially Homomorphic Encryption
+
+Early encryption schemes could only support a single operation:
+
+**RSA (Homomorphic Multiplication)**:
+```
+E(x) = x^e mod n
+E(y) = y^e mod n
+E(x) × E(y) = (xy)^e mod n = E(xy)  ✓
+```
+
+**Paillier (Homomorphic Addition)**:
+```
+E(x) = g^x × r^n mod n²
+E(y) = g^y × s^n mod n²
+E(x) × E(y) = g^(x+y) × (rs)^n mod n² = E(x+y)  ✓
+```
+
+But they couldn't support both addition and multiplication simultaneously, which limited practical applications.
+
+## FHE Core Formula
+
+Fully homomorphic encryption supports unlimited additions and multiplications on ciphertext:
+
+```
+E(x + y) = E(x) ⊕ E(y)           (Additive Homomorphism)
+E(x × y) = E(x) ⊗ E(y)           (Multiplicative Homomorphism)
+E(x - y) = E(x) ⊕ E⁻¹ ⊗ E(y)    (Subtractive Homomorphism)
+```
+
+> **Intuitive Understanding**
+> This means:
+> - The result of **operating directly on ciphertext**
+> - **After decryption** equals the result of **operating on plaintext**
+> - The computing party never knows what the original data is
+
+## Understanding with Real-World Examples
+
+> Imagine your data is placed in a **special locked box**. You have a private key to open it, but the cloud doesn't.
+>
+> You hand the locked box to the cloud server. The cloud can add things to it, multiply by a number, without opening the box.
+>
+> When the cloud finishes computing, it returns the box to you. You use your private key to open it and find that the data inside is exactly the result you wanted — and the cloud never knew what was inside.
+
+## FHE Milestones
+
+| Year | Event | Significance |
+|------|------|------|
+| 1978 | Rivest et al. proposed homomorphic encryption concept | Theoretical萌芽 |
+| 1999 | Paillier algorithm proposed | First practical additive homomorphism |
+| **2009** | **Gentry implemented FHE based on ideal lattices** | **Breakthrough** |
+| 2011 | BV algorithm | Based on standard LWE |
+| 2012 | BGV algorithm | Leveled FHE |
+| 2012 | BFV algorithm | Integer batch processing |
+| 2013 | GSW algorithm | Approximate DNFS assumption |
+| 2017 | CKKS | Floating-point approximate computation, ML applications |
+| TFHE | 2016-present | Fast boolean circuit operations |
+
+## Summary
+
+FHE (Fully Homomorphic Encryption) keeps data encrypted throughout the entire processing, solving the ultimate privacy problem of "data can be used but not seen." It is the jewel in cryptography's crown and an important infrastructure for the privacy computing era.

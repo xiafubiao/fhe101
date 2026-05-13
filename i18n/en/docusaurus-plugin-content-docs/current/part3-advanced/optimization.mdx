@@ -1,0 +1,64 @@
+---
+sidebar_position: 1
+---
+
+# Performance Optimization
+
+## Parameter Selection Guide
+
+### Key Parameters
+
+| Parameter | Impact | Recommended Value |
+|------|------|--------|
+| poly_modulus_degree | Security, performance, memory | 1024-65536 |
+| coeff_modulus | Noise budget, operation depth | Choose based on needs |
+| plain_modulus | BFV precision | 1024-1073741824 |
+
+### Selection Principles
+
+```
+Security priority → Increase poly_modulus_degree
+Performance priority → Decrease poly_modulus_degree
+Support deep circuits → Increase coeff_modulus
+```
+
+## Batch Optimization
+
+Packing multiple data items into one ciphertext can significantly improve throughput:
+
+```rust
+// Unoptimized: Each value encrypted separately
+let ct1 = FheInt32::encrypt(1, &ck);
+let ct2 = FheInt32::encrypt(2, &ck);
+
+// Optimized: Use SIMD batch encryption
+// BFV supports packing N integers into 1 ciphertext
+let batch = vec![1i32, 2, 3, 4, /* ... N values */];
+let ct_batch = FheInt32::encrypt_batch(&batch, &ck);
+```
+
+## Parallelization
+
+```rust
+// Use rayon to parallel process multiple ciphertexts
+use rayon::prelude::*;
+
+let results: Vec<Ciphertext> = ciphertexts
+    .par_iter()
+    .map(|ct| ct.clone() + ct.clone()) // Parallel addition
+    .collect();
+```
+
+## Operation Optimization Tips
+
+### Reduce Bootstrapping
+- Use shallow circuits as much as possible
+- Pre-compute partial results
+
+### Avoid Frequent Ciphertext Switching
+- Plaintext-ciphertext multiplication is faster than ciphertext-ciphertext multiplication
+- Use plaintext scaling reasonably
+
+### Memory Management
+- Reuse ciphertext objects
+- Release ciphertexts no longer in use in time

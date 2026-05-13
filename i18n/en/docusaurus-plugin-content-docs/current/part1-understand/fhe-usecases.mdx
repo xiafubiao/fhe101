@@ -1,0 +1,120 @@
+---
+sidebar_position: 3
+---
+
+# What can FHE do? What can't it do?
+
+## Typical FHE Application Scenarios
+
+### 1. Cloud Privacy Computing
+Send data encrypted to the cloud, the cloud executes analysis or machine learning inference on ciphertext, data always exists in encrypted form.
+
+**Case**: Medical Image Analysis
+- Patient encrypts their CT images
+- Cloud AI runs tumor detection model on ciphertext
+- Returns encrypted result, patient uses private key to view
+
+### 2. Classic Case: Millionaires' Problem
+
+Two millionaires want to know who is wealthier, but neither wants the other to know how much they have.
+
+**Traditional Solution**: Requires a trusted third party
+
+**FHE Solution**:
+```
+Alice's assets: x million dollars
+Bob's assets: y million dollars
+
+1. Alice encrypts x with FHE public key, sends to Bob
+2. Bob receives, constructs ciphertext to compare x and y
+3. Bob returns comparison result (still ciphertext)
+4. Alice decrypts with private key, knows x > y or x < y
+5. Both only know the comparison result, not each other's specific assets
+```
+
+> **Extended Applications**
+> This pattern can be extended to:
+> - Private bidding: Bidders don't know others' bids
+> - Salary comparison: Employees don't know how much lower they are than others
+> - Credit scoring: Banks don't know your specific score
+
+### 3. Private Machine Learning
+Both model parameters and input data can remain encrypted.
+
+**Scenarios**:
+- Privacy-preserving recommendation systems
+- Model training on encrypted data
+- Gradient protection in federated learning
+
+**Case: Medical Diagnosis Model**
+```
+1. Hospital A holds encrypted patient data
+2. AI company provides encrypted model parameters
+3. Cloud executes inference on ciphertext
+4. Returns encrypted diagnosis result
+5. Hospital A decrypts to get diagnosis (Hospital doesn't know model details, AI company doesn't know patient data)
+```
+
+### 4. Blockchain and Web3
+Combining FHE can achieve:
+- **Private transactions**: Transaction amounts invisible to third parties
+- **Decentralized identity verification**: Verify identity without leaking information
+- **On-chain private voting**: Vote content confidential
+
+### 5. Secure Data Sharing
+When sharing data among multiple organizations:
+- Each party's data always encrypted
+- Joint analysis only returns aggregate results
+- Better compliance (GDPR, etc.)
+
+**Case: Joint Risk Control**
+```
+Bank A + Bank B + Bank C → Calculate industry average non-performing rate
+
+- Each bank only sees results of joint computation with others
+- No single bank can access other banks' detailed data
+- Regulators can verify result correctness (combined with ZK)
+```
+
+## Current FHE Limitations
+
+### Performance Overhead
+| Operation Type | Overhead Multiple (vs plaintext) |
+|----------|---------------------|
+| Addition | ~1000x |
+| Multiplication | ~10000x |
+| Bootstrapping | ~100000x |
+
+**Recommendation**: In practical applications, minimize the number of ciphertext operations.
+
+### Functional Limitations
+- **Non-linear operations difficult**: Comparisons, divisions require special techniques
+- **Limited floating-point precision**: CKKS scheme is approximate computation
+- **Noise accumulation**: Number of operations limited by noise budget
+
+### Usage Complexity
+- Parameter selection requires professional knowledge
+- Key management complex
+- Debugging difficult (ciphertext cannot be directly viewed)
+
+## Scenarios Where FHE Cannot Be Used
+
+| Scenario | Alternative Solution |
+|------|----------|
+| Real-time high-frequency trading | TEE |
+| Multiple parties need to verify each other's identity | ZK |
+| Very large data volume but limited budget | MPC + differential privacy |
+| Need arbitrary non-linear functions | Hybrid scheme (FHE + approximation algorithms) |
+
+## Technology Development Trends
+
+FHE is rapidly maturing:
+
+| Direction | Progress |
+|------|------|
+| **Hardware acceleration** | FHE-specific chips in development (Intel, DARPA) |
+| **Algorithm optimization** | New bootstrapping algorithms continuously reduce overhead |
+| **Tool improvement** | Developer experience significantly improved |
+| **Standardization** | HomomorphicEncryption.org advancing standardization |
+
+In the next 5-10 years, FHE is expected to become practical in more scenarios.
