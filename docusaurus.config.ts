@@ -72,6 +72,10 @@ const config: Config = {
           label: '文档',
         },
         {
+          type: 'localeDropdown',
+          position: 'right',
+        },
+        {
           href: 'https://github.com/xiafubiao/fhe101',
           label: 'GitHub',
           position: 'right',
