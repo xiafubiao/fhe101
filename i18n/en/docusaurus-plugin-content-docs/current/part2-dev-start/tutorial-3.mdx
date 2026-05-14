@@ -4,132 +4,84 @@ sidebar_position: 5
 
 # Example 3: Building Your First FHE Application
 
-## Environment Setup
+## Official Examples
 
 This example uses **TFHE-rs** (Rust implementation), provided by Zama.
 
-### System Requirements
+| Resource | Link |
+|----------|------|
+| TFHE-rs Quick Start | [docs.zama.ai/tfhe-rs/get-started/quick-start](https://docs.zama.ai/tfhe-rs/get-started/quick-start) |
+| TFHE-rs GitHub Examples | [github.com/zama-ai/tfhe-rs/tree/main/examples](https://github.com/zama-ai/tfhe-rs/tree/main/examples) |
+| TFHE-rs Configuration Docs | [docs.zama.ai/tfhe-rs/configuration/rust-configuration](https://docs.zama.ai/tfhe-rs/configuration/rust-configuration) |
 
-| Item | Requirement |
-|------|------|
-| Operating System | Linux (Ubuntu 20.04+), macOS, Windows (WSL2) |
-| Memory | Minimum 8GB (16GB+ recommended) |
-| Rust | 1.60+ |
+## Installation
 
-### Installation Steps
+See: [TFHE-rs Installation](https://docs.zama.ai/tfhe-rs/get-started/installation)
 
 ```bash
-# 1. Install Rust
+# Install Rust
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 source ~/.cargo/env
 
-# 2. Create project
-cargo new my-fhe-app
-cd my-fhe-app
+# Create project
+cargo new tfhe-example
+cd tfhe-example
 
-# 3. Add TFHE-rs dependency
-cargo add tfhe --features boolean,shortint,integer
+# Add dependency
+echo 'tfhe = { version = "~1.6.1", features = ["integer"] }' >> Cargo.toml
 
-# 4. Build
-cargo build --release
+# Run
+cargo run --release
 ```
 
-### Notes
+## Official Example Code
 
-> **warning** Long first build time
->
-> TFHE-rs build time is relatively long. Recommend being patient or using pre-compiled Docker images.
-
-> **warning** Key Security
->
-> - Private key (client_key) must never be sent to server
-> - Only send public key (public_key) and evaluation key (server_key) to server
-
-## Suggested Project Structure
-
-```
-my-fhe-app/
-├── src/
-│   ├── client/          # Client code (key generation, encryption, decryption)
-│   ├── server/          # Server code (ciphertext operations)
-│   └── common/          # Shared types and utilities
-├── tests/
-├── Cargo.toml
-└── README.md
-```
-
-## Building Applications with TFHE-rs
-
-### 1. Create Rust Project
-
-```bash
-cargo new my-fhe-app
-cd my-fhe-app
-```
-
-### 2. Add Dependencies
-
-```toml
-[dependencies]
-tfhe = { version = "0.6", features = ["integer", "borsh"] }
-```
-
-### 3. Complete Example: Private Voting System
+Source: [TFHE-rs Quick Start](https://docs.zama.ai/tfhe-rs/get-started/quick-start)
 
 ```rust
+use tfhe::{ConfigBuilder, generate_keys, set_server_key, FheUint8};
 use tfhe::prelude::*;
-use tfhe::{generate_keys, set_server_key, ConfigBuilder};
-use tfhe::integer::{FheUint8, ServerUint8};
 
 fn main() {
-    // === Server side (data collector) ===
-    let config = ConfigBuilder::default();
+    let config = ConfigBuilder::default().build();
+
+    // Client-side: generate keys
     let (client_key, server_key) = generate_keys(config);
+
+    let clear_a = 27u8;
+    let clear_b = 128u8;
+
+    // Client-side: encrypt data
+    let a = FheUint8::encrypt(clear_a, &client_key);
+    let b = FheUint8::encrypt(clear_b, &client_key);
+
+    // Server-side: compute on ciphertext
     set_server_key(server_key);
+    let result = a + b;
 
-    // === Client side (voters) ===
-    // Assume three options: 0=against, 1=for, 2=abstain
-    let my_vote: u8 = 1; // I vote "for"
+    // Client-side: decrypt result
+    let decrypted_result: u8 = result.decrypt(&client_key);
 
-    // Encrypt vote
-    let encrypted_vote = FheUint8::encrypt(my_vote, &client_key);
-
-    // === Server side: Tally votes ===
-    // Simulate 100 voters (simplified here)
-    let mut total_yes = encrypted_vote.clone();
-    let mut total_no = FheUint8::encrypt(0, &client_key);
-    let mut total_abstain = FheUint8::encrypt(0, &client_key);
-
-    // Batch processing (actually receives ciphertexts from network)
-    // Count yes votes
-    let is_yes = encrypted_vote.clone().eq(&FheUint8::encrypt(1, &client_key));
-    // ... actual needs conditional counting based on specific values
-
-    // === Server returns result ===
-    let result_ct = total_yes;
-
-    // === Client decrypts: View result ===
-    let result: u8 = result_ct.decrypt(&client_key);
-    println!("Yes votes: {}", result);
+    let clear_result = clear_a + clear_b;
+    assert_eq!(decrypted_result, clear_result);
 }
 ```
 
-## Next Step: Real Projects
+## Next Steps
 
-### Learning Path
-1. First run official examples
-2. Try modifying parameters and observing effects
-3. Implement your own business logic
+1. Check [TFHE-rs Complete Examples](https://github.com/zama-ai/tfhe-rs/tree/main/examples)
+2. Learn [TFHE-rs Configuration Docs](https://docs.zama.ai/tfhe-rs/configuration/rust-configuration) for performance optimization
+3. Reference [fhEVM Tutorial](https://docs.zama.ai/protocol/solidity-guides/getting-started/quick-start-tutorial) for blockchain privacy applications
 
-### Recommended Resources
-- [OpenFHE Examples](https://github.com/openfheorg/openfhe-development)
-- [TFHE-rs Book](https://tfhe.github.io/tfhe/)
-- [Microsoft SEAL Examples](https://github.com/microsoft/SEAL)
+## FAQ
 
-## Common Issues
-
-| Issue | Solution |
-|------|----------|
+| Problem | Solution |
+|---------|----------|
 | Build too slow | Use `cargo build --release` |
-| Insufficient memory | Reduce poly_modulus_degree |
-| Insufficient precision | Choose larger parameters or CKKS
+| Out of memory | Reduce parameters or use Docker |
+| Insufficient precision | Choose larger parameters or CKKS scheme |
+
+More resources:
+
+- [OpenFHE Examples](https://github.com/openfheorg/openfhe-development)
+- [Microsoft SEAL Examples](https://github.com/microsoft/SEAL)

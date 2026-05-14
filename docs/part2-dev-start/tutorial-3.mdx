@@ -4,132 +4,84 @@ sidebar_position: 5
 
 # 案例三：构建你的第一个 FHE 应用
 
-## 环境准备
+## 官方示例
 
 本案例使用 **TFHE-rs**（Rust 实现），由 Zama 提供。
 
-### 系统要求
-
-| 项目 | 要求 |
+| 资源 | 链接 |
 |------|------|
-| 操作系统 | Linux (Ubuntu 20.04+), macOS, Windows (WSL2) |
-| 内存 | 最少 8GB（推荐 16GB+） |
-| Rust | 1.60+ |
+| TFHE-rs 快速开始 | [docs.zama.ai/tfhe-rs/get-started/quick-start](https://docs.zama.ai/tfhe-rs/get-started/quick-start) |
+| TFHE-rs GitHub 示例 | [github.com/zama-ai/tfhe-rs/tree/main/examples](https://github.com/zama-ai/tfhe-rs/tree/main/examples) |
+| TFHE-rs 配置文档 | [docs.zama.ai/tfhe-rs/configuration/rust-configuration](https://docs.zama.ai/tfhe-rs/configuration/rust-configuration) |
 
-### 安装步骤
+## 安装和环境
+
+详见：[TFHE-rs 安装文档](https://docs.zama.ai/tfhe-rs/get-started/installation)
 
 ```bash
-# 1. 安装 Rust
+# 安装 Rust
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 source ~/.cargo/env
 
-# 2. 创建项目
-cargo new my-fhe-app
-cd my-fhe-app
+# 创建项目
+cargo new tfhe-example
+cd tfhe-example
 
-# 3. 添加 TFHE-rs 依赖
-cargo add tfhe --features boolean,shortint,integer
+# 添加依赖
+echo 'tfhe = { version = "~1.6.1", features = ["integer"] }' >> Cargo.toml
 
-# 4. 编译
-cargo build --release
+# 运行
+cargo run --release
 ```
 
-### 注意事项
+## 官方示例代码
 
-> **warning** 首次编译时间长
-> 
-> TFHE-rs 编译时间较长，建议耐心等待或使用预编译的 Docker 镜像。
-
-> **warning** 密钥安全
-> 
-> - 私钥（client_key）绝不能发送到服务器
-> - 只发送公钥（public_key）和计算钥（server_key）给服务器
-
-## 项目结构建议
-
-```
-my-fhe-app/
-├── src/
-│   ├── client/          # 客户端代码（密钥生成、加密、解密）
-│   ├── server/          # 服务器代码（密文运算）
-│   └── common/          # 共享类型和工具
-├── tests/
-├── Cargo.toml
-└── README.md
-```
-
-## 使用 TFHE-rs 构建应用
-
-### 1. 创建 Rust 项目
-
-```bash
-cargo new my-fhe-app
-cd my-fhe-app
-```
-
-### 2. 添加依赖
-
-```toml
-[dependencies]
-tfhe = { version = "0.6", features = ["integer", "borsh"] }
-```
-
-### 3. 完整示例：隐私投票系统
+来源：[TFHE-rs Quick Start](https://docs.zama.ai/tfhe-rs/get-started/quick-start)
 
 ```rust
+use tfhe::{ConfigBuilder, generate_keys, set_server_key, FheUint8};
 use tfhe::prelude::*;
-use tfhe::{generate_keys, set_server_key, ConfigBuilder};
-use tfhe::integer::{FheUint8, ServerUint8};
 
 fn main() {
-    // === 服务器端（数据收集方）===
-    let config = ConfigBuilder::default();
+    let config = ConfigBuilder::default().build();
+
+    // 客户端：生成密钥
     let (client_key, server_key) = generate_keys(config);
+
+    let clear_a = 27u8;
+    let clear_b = 128u8;
+
+    // 客户端：加密数据
+    let a = FheUint8::encrypt(clear_a, &client_key);
+    let b = FheUint8::encrypt(clear_b, &client_key);
+
+    // 服务端：在密文上计算
     set_server_key(server_key);
+    let result = a + b;
 
-    // === 客户端（投票者）===
-    // 假设三个选项：0=反对, 1=赞成, 2=弃权
-    let my_vote: u8 = 1; // 我投 "赞成"
+    // 客户端：解密结果
+    let decrypted_result: u8 = result.decrypt(&client_key);
 
-    // 加密投票
-    let encrypted_vote = FheUint8::encrypt(my_vote, &client_key);
-
-    // === 服务器端：汇总票数 ===
-    // 模拟 100 个投票者（这里简化处理）
-    let mut total_yes = encrypted_vote.clone();
-    let mut total_no = FheUint8::encrypt(0, &client_key);
-    let mut total_abstain = FheUint8::encrypt(0, &client_key);
-
-    // 批量处理（实际中从网络接收密文）
-    // 统计赞成票
-    let is_yes = encrypted_vote.clone().eq(&FheUint8::encrypt(1, &client_key));
-    // ... 实际需要根据具体值做条件计数
-
-    // === 服务器返回结果 ===
-    let result_ct = total_yes;
-
-    // === 客户端解密：查看结果 ===
-    let result: u8 = result_ct.decrypt(&client_key);
-    println!("赞成票数: {}", result);
+    let clear_result = clear_a + clear_b;
+    assert_eq!(decrypted_result, clear_result);
 }
 ```
 
-## 下一步：真实项目
+## 下一步
 
-### 学习路径
-1. 先跑通官方 examples
-2. 尝试修改参数，观察效果
-3. 实现自己的业务逻辑
-
-### 推荐资源
-- [OpenFHE Examples](https://github.com/openfheorg/openfhe-development)
-- [TFHE-rs Book](https://tfhe.github.io/tfhe/)
-- [Microsoft SEAL Examples](https://github.com/microsoft/SEAL)
+1. 查看 [TFHE-rs 完整示例](https://github.com/zama-ai/tfhe-rs/tree/main/examples)
+2. 学习 [TFHE-rs 配置文档](https://docs.zama.ai/tfhe-rs/configuration/rust-configuration) 优化性能
+3. 参考 [fhEVM 教程](https://docs.zama.ai/protocol/solidity-guides/getting-started/quick-start-tutorial) 构建区块链隐私应用
 
 ## 常见问题
 
 | 问题 | 解决方案 |
 |------|----------|
 | 编译太慢 | 使用 `cargo build --release` |
-| 内存不足 | 减小 poly_modulus_degree |
-| 精度不够 | 选择更大的参数或 CKKS |
+| 内存不足 | 减小参数或使用 Docker |
+| 精度不够 | 选择更大的参数或 CKKS 方案 |
+
+更多资源：
+
+- [OpenFHE Examples](https://github.com/openfheorg/openfhe-development)
+- [Microsoft SEAL Examples](https://github.com/microsoft/SEAL)
