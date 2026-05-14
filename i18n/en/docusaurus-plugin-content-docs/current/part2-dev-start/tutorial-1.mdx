@@ -4,121 +4,88 @@ sidebar_position: 4
 
 # Example 1: Private Data Statistics
 
-## Environment Setup
-
-This example uses **Microsoft SEAL** (BFV scheme), supporting Python and C++.
-
-### Option A: Python (Recommended for Beginners)
-
-```bash
-# 1. Create virtual environment (recommended)
-python -m venv fhe-env
-source fhe-env/bin/activate  # Linux/macOS
-# fhe-env\Scripts\activate   # Windows
-
-# 2. Install PySEAL
-pip install pyseal
-
-# 3. Verify installation
-python -c "import seal; print(seal.SEALVersion())"
-```
-
-### Option B: C++ (For Production Use)
-
-```bash
-# 1. Install CMake and compiler
-# Ubuntu:
-sudo apt install cmake build-essential
-
-# macOS:
-brew install cmake
-
-# 2. Clone and compile SEAL
-git clone https://github.com/microsoft/SEAL
-mkdir SEAL/build && cd SEAL/build
-cmake ..
-make -j4
-sudo make install
-```
-
-### Notes
-
-> **tip** Python version depends on NumPy
->
-> PySEAL depends on NumPy. Using a virtual environment is recommended to avoid version conflicts.
-
-> **warning** Performance Difference
->
-> Python version is convenient for debugging, but performance is not as good as C++ version. C++ version recommended for production.
-
 ## Scenario
 
-Hospital A and Hospital B want to jointly calculate the average treatment cost for a certain disease, but neither wants to expose their patient cost data.
+Hospital A and Hospital B want to jointly calculate the average treatment cost for a certain disease, but neither wants to expose their own patient cost data.
 
-## Using BFV Scheme
+## Official Examples
 
-```python
-import seal
+This example uses Microsoft SEAL, with official example code available:
 
-# 1. Initialize parameters
-params = seal.EncryptionParameters(seal.scheme_type.bfv)
-params.set_poly_degree(4096)
-params.set_coeff_modulus(seal.coeff_modulus_128(4096))
-params.set_plain_modulus(1024)
+| Example | File | Description |
+|---------|------|-------------|
+| BFV Basics | [native/examples/1_bfv_basics.cpp](https://github.com/microsoft/SEAL/blob/main/native/examples/1_bfv_basics.cpp) | BFV scheme basic operations |
+| C# Version | [dotnet/examples/1_BFV_Basics.cs](https://github.com/microsoft/SEAL/blob/main/dotnet/examples/1_BFV_Basics.cs) | Same in C# |
 
-context = seal.SEALContext(params)
+## Installation
 
-# 2. Generate keys
-keygen = seal.KeyGenerator(context)
-public_key = keygen.create_public_key()
-secret_key = keygen.create_secret_key()
+See: [Microsoft SEAL Official Installation](https://github.com/microsoft/SEAL/tree/main)
 
-# 3. Create encoder and encryptor
-encoder = seal.IntegerEncoder(context)
-encryptor = seal.Encryptor(context, public_key)
-evaluator = seal.Evaluator(context)
-decryptor = seal.Decryptor(context, secret_key)
+Main methods:
 
-# 4. Hospital A encrypts their own data
-# Suppose both hospitals have 5 patients each, with costs:
-hospital_a = [12000, 8500, 15000, 9200, 11000]
-hospital_b_encoded = []
+```bash
+# C++ - Using vcpkg
+git clone https://github.com/Microsoft/vcpkg.git
+cd vcpkg
+./bootstrap-vcpkg.sh
+./vcpkg integrate install
+./vcpkg install seal
 
-# Hospital B encrypts locally and sends ciphertexts
-for fee in [9800, 13200, 7500, 14500, 10500]:
-    plain = encoder.encode(fee)
-    ciphertext = encryptor.encrypt(plain)
-    hospital_b_encoded.append(ciphertext)
-
-# 5. Hospital A computes on ciphertext (addition)
-total = encryptor.encrypt(encoder.encode(0))
-for fee_plain in hospital_a:
-    fee_encoded = encoder.encode(fee_plain)
-    fee_ct = encryptor.encrypt(fee_encoded)
-    total = evaluator.add(total, fee_ct)
-
-# Add Hospital B's ciphertexts
-for ct in hospital_b_encoded:
-    total = evaluator.add(total, ct)
-
-# 6. Decrypt and calculate average
-total_plain = decryptor.decrypt(total)
-total_value = encoder.decode_int32(total_plain)
-
-average = total_value / (len(hospital_a) + len(hospital_b_encoded))
-print(f"Average cost: {average}")  # 10700.0
-
-# Note: Hospital A doesn't know Hospital B's specific costs!
+# Build examples
+cd native/examples
+cmake -S . -B build -DSEAL_ROOT=~/my_seal
+cmake --build build
 ```
 
-## Running Result
+## Official BFV Example Core Code
 
-```
-Average cost: 10700.0
+Source: [1_bfv_basics.cpp](https://github.com/microsoft/SEAL/blob/main/native/examples/1_bfv_basics.cpp)
+
+```cpp
+// 1. Create encryption parameters (BFV scheme)
+EncryptionParameters parms(scheme_type::bfv);
+parms.set_poly_degree(4096);
+parms.set_coeff_modulus(CoeffModulus::BFVDefault(4096));
+parms.set_plain_modulus(PlainModulus::Batching(4096, 20));
+
+SEALContext context(parms);
+
+// 2. Generate keys
+KeyGenerator keygen(context);
+PublicKey public_key;
+keygen.create_public_key(public_key);
+SecretKey secret_key = keygen.secret_key();
+
+// 3. Create encoder, encryptor, evaluator
+BatchEncoder batch_encoder(context);
+Encryptor encryptor(context, public_key);
+Evaluator evaluator(context);
+Decryptor decryptor(context, secret_key);
+
+// 4. Encode and encrypt
+vector<uint64_t> pod_matrix(512);
+transform(pod_matrix.begin(), pod_matrix.end(), pod_matrix.begin(), [&](auto) { return uniform_int_distribution<uint64_t>(0, 25)(engine); });
+
+Plaintext plain_matrix;
+batch_encoder.encode(pod_matrix, plain_matrix);
+Ciphertext encrypted_matrix;
+encryptor.encrypt(encrypted_matrix, plain_matrix);
+
+// 5. Execute addition on ciphertext
+Ciphertext encrypted_add;
+evaluator.add_inplace(encrypted_matrix, encrypted_matrix);
+
+// 6. Decrypt and decode
+Plaintext plain_result;
+decryptor.decrypt(encrypted_matrix, plain_result);
+vector<uint64_t> result_matrix;
+batch_encoder.decode(result_matrix, plain_result);
 ```
 
-## Key Points Summary
+## Key Takeaways
 
 1. **Data not leaked**: Hospital A only sees encrypted data, cannot know Hospital B's specific costs
-2. **Computation correct**: The decrypted average is the true average of both hospitals' data
-3. **Noise management**: In actual use, need to estimate noise budget and choose appropriate parameters
+2. **Correct computation**: The decrypted average is the true average of both hospitals' data
+3. **Noise management**: In practice, estimate noise budget and choose appropriate parameters
+
+For more examples, see: [Microsoft SEAL Examples](https://github.com/microsoft/SEAL/tree/main#examples)

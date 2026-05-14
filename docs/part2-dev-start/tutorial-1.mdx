@@ -4,117 +4,82 @@ sidebar_position: 4
 
 # 案例一：隐私数据统计
 
-## 环境准备
-
-本案例使用 **Microsoft SEAL**（BFV 方案），支持 Python 和 C++。
-
-### 方案 A：Python（推荐入门）
-
-```bash
-# 1. 创建虚拟环境（推荐）
-python -m venv fhe-env
-source fhe-env/bin/activate  # Linux/macOS
-# fhe-env\Scripts\activate   # Windows
-
-# 2. 安装 PySEAL
-pip install pyseal
-
-# 3. 验证安装
-python -c "import seal; print(seal.SEALVersion())"
-```
-
-### 方案 B：C++（生产环境使用）
-
-```bash
-# 1. 安装 CMake 和编译器
-# Ubuntu:
-sudo apt install cmake build-essential
-
-# macOS:
-brew install cmake
-
-# 2. 克隆并编译 SEAL
-git clone https://github.com/microsoft/SEAL
-mkdir SEAL/build && cd SEAL/build
-cmake ..
-make -j4
-sudo make install
-```
-
-### 注意事项
-
-> **tip** Python 版本依赖 NumPy
-> 
-> PySEAL 依赖 NumPy，建议使用虚拟环境避免版本冲突。
-
-> **warning** 性能差异
-> 
-> Python 版本方便调试，但性能不如 C++ 版本。生产环境建议使用 C++ 版本。
-
 ## 场景
 
 医院 A 和医院 B 想要联合计算某种疾病的平均治疗费用，但双方都不想暴露各自的患者费用数据。
 
-## 使用 BFV 方案
+## 官方示例
 
-```python
-import seal
+本案例使用 Microsoft SEAL，官方提供以下示例代码：
 
-# 1. 初始化参数
-params = seal.EncryptionParameters(seal.scheme_type.bfv)
-params.set_poly_degree(4096)
-params.set_coeff_modulus(seal.coeff_modulus_128(4096))
-params.set_plain_modulus(1024)
+| 示例 | 文件 | 说明 |
+|------|------|------|
+| BFV 基础 | [native/examples/1_bfv_basics.cpp](https://github.com/microsoft/SEAL/blob/main/native/examples/1_bfv_basics.cpp) | BFV 方案基础操作 |
+| C# 版本 | [dotnet/examples/1_BFV_Basics.cs](https://github.com/microsoft/SEAL/blob/main/dotnet/examples/1_BFV_Basics.cs) | 同上 C# 版本 |
 
-context = seal.SEALContext(params)
+## 安装和环境
 
-# 2. 生成密钥
-keygen = seal.KeyGenerator(context)
-public_key = keygen.create_public_key()
-secret_key = keygen.create_secret_key()
+详见：[Microsoft SEAL 官方安装文档](https://github.com/microsoft/SEAL/tree/main)
 
-# 3. 创建编码器和加密器
-encoder = seal.IntegerEncoder(context)
-encryptor = seal.Encryptor(context, public_key)
-evaluator = seal.Evaluator(context)
-decryptor = seal.Decryptor(context, secret_key)
+主要方式：
 
-# 4. 医院 A 加密自己的数据
-# 假设两家医院各有 5 位患者，费用分别为：
-hospital_a = [12000, 8500, 15000, 9200, 11000]
-hospital_b_encoded = []
+```bash
+# C++ - 使用 vcpkg
+git clone https://github.com/Microsoft/vcpkg.git
+cd vcpkg
+./bootstrap-vcpkg.sh
+./vcpkg integrate install
+./vcpkg install seal
 
-# 医院 B 在本地加密后发送密文
-for fee in [9800, 13200, 7500, 14500, 10500]:
-    plain = encoder.encode(fee)
-    ciphertext = encryptor.encrypt(plain)
-    hospital_b_encoded.append(ciphertext)
-
-# 5. 医院 A 在密文上计算（加法）
-total = encryptor.encrypt(encoder.encode(0))
-for fee_plain in hospital_a:
-    fee_encoded = encoder.encode(fee_plain)
-    fee_ct = encryptor.encrypt(fee_encoded)
-    total = evaluator.add(total, fee_ct)
-
-# 加上医院 B 的密文
-for ct in hospital_b_encoded:
-    total = evaluator.add(total, ct)
-
-# 6. 解密并计算平均值
-total_plain = decryptor.decrypt(total)
-total_value = encoder.decode_int32(total_plain)
-
-average = total_value / (len(hospital_a) + len(hospital_b_encoded))
-print(f"平均费用: {average}")  # 10700.0
-
-# 注意：医院 A 不知道医院 B 的具体费用！
+# 构建示例
+cd native/examples
+cmake -S . -B build -DSEAL_ROOT=~/my_seal
+cmake --build build
 ```
 
-## 运行结果
+## 官方 BFV 示例核心代码
 
-```
-平均费用: 10700.0
+来源：[1_bfv_basics.cpp](https://github.com/microsoft/SEAL/blob/main/native/examples/1_bfv_basics.cpp)
+
+```cpp
+// 1. 创建加密参数 (BFV 方案)
+EncryptionParameters parms(scheme_type::bfv);
+parms.set_poly_degree(4096);
+parms.set_coeff_modulus(CoeffModulus::BFVDefault(4096));
+parms.set_plain_modulus(PlainModulus::Batching(4096, 20));
+
+SEALContext context(parms);
+
+// 2. 生成密钥
+KeyGenerator keygen(context);
+PublicKey public_key;
+keygen.create_public_key(public_key);
+SecretKey secret_key = keygen.secret_key();
+
+// 3. 创建编码器、加密器、评估器
+BatchEncoder batch_encoder(context);
+Encryptor encryptor(context, public_key);
+Evaluator evaluator(context);
+Decryptor decryptor(context, secret_key);
+
+// 4. 编码并加密
+vector<uint64_t> pod_matrix(512);
+transform(pod_matrix.begin(), pod_matrix.end(), pod_matrix.begin(), [&](auto) { return uniform_int_distribution<uint64_t>(0, 25)(engine); });
+
+Plaintext plain_matrix;
+batch_encoder.encode(pod_matrix, plain_matrix);
+Ciphertext encrypted_matrix;
+encryptor.encrypt(encrypted_matrix, plain_matrix);
+
+// 5. 在密文上执行加法
+Ciphertext encrypted_add;
+evaluator.add_inplace(encrypted_matrix, encrypted_matrix);
+
+// 6. 解密并解码
+Plaintext plain_result;
+decryptor.decrypt(encrypted_matrix, plain_result);
+vector<uint64_t> result_matrix;
+batch_encoder.decode(result_matrix, plain_result);
 ```
 
 ## 关键点总结
@@ -122,3 +87,5 @@ print(f"平均费用: {average}")  # 10700.0
 1. **数据不泄露**：医院 A 只看到加密数据，无法得知医院 B 的具体费用
 2. **计算正确**：解密后的平均值是两家医院真实数据的平均值
 3. **噪声管理**：实际使用时需要预估噪声预算，选择合适的参数
+
+更多示例请查看：[Microsoft SEAL Examples](https://github.com/microsoft/SEAL/tree/main#examples)
