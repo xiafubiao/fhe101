@@ -1,0 +1,56 @@
+.toggleButton {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  cursor: pointer;
+  text-decoration: none !important;
+}
+
+.toggleContainer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.toggleLabel {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ifm-navbar-link-color);
+}
+
+.toggleTrack {
+  width: 36px;
+  height: 20px;
+  background: var(--ifm-color-primary);
+  border-radius: 10px;
+  position: relative;
+  transition: background-color 0.3s ease;
+}
+
+.toggleThumb {
+  width: 16px;
+  height: 16px;
+  background: white;
+  border-radius: 50%;
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  transition: transform 0.3s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.toggleThumbRight {
+  transform: translateX(16px);
+}
+
+[data-theme='dark'] .toggleLabel {
+  color: var(--ifm-navbar-link-color);
+}
+
+[data-theme='dark'] .toggleTrack {
+  background: var(--ifm-color-primary-light);
+}
+
+[data-theme='dark'] .toggleThumb {
+  background: white;
+}

@@ -9,7 +9,7 @@ const sidebars: SidebarsConfig = {
     },
     {
       type: 'category',
-      label: '第一部分：认识 FHE',
+      label: 'Part 1: 认识 FHE (What is FHE?)',
       collapsed: false,
       items: [
         'part1-understand/intro',
@@ -20,7 +20,7 @@ const sidebars: SidebarsConfig = {
     },
     {
       type: 'category',
-      label: '第二部分：FHE 开发入门',
+      label: 'Part 2: FHE开发入门 (FHE Basic Development)',
       collapsed: false,
       items: [
         'part2-dev-start/concepts',
@@ -34,7 +34,7 @@ const sidebars: SidebarsConfig = {
     },
     {
       type: 'category',
-      label: 'FHE进阶',
+      label: 'Part 3: FHE进阶 (Advanced Topics of FHE)',
       collapsed: false,
       items: [
         'part3-advanced/optimization',
@@ -44,7 +44,7 @@ const sidebars: SidebarsConfig = {
     },
     {
       type: 'category',
-      label: '第四部分：资源与社区',
+      label: 'Part 4: 资源与社区 (Resources and Communities)',
       collapsed: false,
       items: [
         'part4-resources/learning-path',

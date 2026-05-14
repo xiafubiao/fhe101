@@ -1,65 +1,12 @@
 # Web3 + FHE Architecture Patterns
 
-> Running FHE computation directly on-chain is currently impractical — Ethereum's gas model and block time simply can't support it. This article introduces the mainstream architecture for FHE in Web3 scenarios: the **Coprocessor pattern**, and the data flow you need to understand as a developer.
-
-## Why Can't FHE Run On-Chain?
-
-A simple FHE multiplication takes milliseconds to hundreds of milliseconds on CPU. If executed on-chain, gas costs would be astronomical and severely slow down block production.
-
-The solution: **Only store ciphertext handles on-chain, actual FHE computation is done off-chain by the Coprocessor**.
+fhEVM (Fully Homomorphic Ethereum Virtual Machine) is an open-source project developed by Zama that enables smart contracts on Ethereum and EVM-compatible chains to process encrypted data, achieving privacy protection. Traditional FHE computation is very resource-intensive — running it directly on-chain would result in prohibitively high gas costs and severely slow down block production. Therefore, fhEVM adopts a "off-chain computation + on-chain verification" Coprocessor architecture: users encrypt their data with the global public key and send it to the chain along with a ZKPoK zero-knowledge proof. The Solidity contracts only store ciphertext handles rather than the actual ciphertexts. The Coprocessor listens for events off-chain, retrieves ciphertexts, and executes actual FHE operations (addition, subtraction, multiplication, comparison, etc.). The result ciphertext is then submitted back on-chain. fhEVM uses the [TFHE scheme](https://docs.zama.org/tfhe-rs/get-started/security-and-cryptography) as its underlying technology, which automatically triggers lightweight Bootstrapping after each gate operation to prevent noise accumulation. This means developers writing Solidity contracts don't need to manually manage noise — they only need to use encrypted types like euint32 and euint256. The decryption process uses MPC + threshold cryptography, coordinated by Gateway and KMS (key management nodes) through multiple nodes collaborating. No single node can decrypt data alone. fhEVM also has a built-in ACL (Access Control List) system to manage "who can decrypt which ciphertext," ensuring only authorized addresses can request decryption. Representative use cases include confidential ERC-20 tokens, sealed auctions, private voting, and on-chain machine learning inference.
 
 ---
 
 ## fhEVM's Coprocessor Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                          User (Browser/Client)                      │
-│                                                                  │
-│  1. Encrypt input values with global public key                    │
-│  2. Generate ZKPoK (zero-knowledge proof: I know this value)      │
-│  3. Package (ciphertext, ZKPoK) and send to chain                  │
-└────────────────────────────┬────────────────────────────────────┘
-                             │
-                             ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                         Host Chain (Ethereum / L2)                  │
-│                                                                  │
-│  Smart Contract (your Solidity code)                                 │
-│  ┌─────────────────────────────────────────┐                    │
-│  │ function transfer(externalEuint32 amt,  │                    │
-│  │                   bytes proof) {        │                    │
-│  │   euint32 e = FHE.fromExternal(amt,     │ ── On-chain stores  │
-│  │                                proof); │    ciphertext handle │
-│  │   _balance = FHE.sub(_balance, e);      │    not ciphertext  │
-│  │   FHE.allowThis(_balance);             │                    │
-│  │ }                                      │                    │
-│  └─────────────────────────────────────────┘                    │
-│                                                                  │
-│  ACL Contract: Records "who can decrypt which ciphertext"            │
-│  FHEVM Executor: Broadcasts FHE operations as events                │
-└────────────────────────────┬────────────────────────────────────┘
-                             │  Events (FHE operation requests)
-                             ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                         Coprocessor (Off-Chain)                      │
-│                                                                  │
-│  - Listens to on-chain FHE operation events                         │
-│  - Retrieves ciphertext, executes actual FHE operations (+/-/×/compare)│
-│  - Submits result ciphertext back to chain                         │
-└────────────────────────────┬────────────────────────────────────┘
-                             │
-                             ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                      Gateway + KMS (Key Management)                      │
-│                                                                  │
-│  - Verify ACL: Check if requesting address has permission           │
-│  - Coordinate threshold decryption among multiple KMS nodes (MPC)    │
-│  - Return plaintext result to authorized user                       │
-└─────────────────────────────────────────────────────────────────┘
-```
-
----
+![fhEVM Architecture](/img/FHE_arc.png)
 
 ## Data Flow: Complete Path of a Private Transfer
 

@@ -8,9 +8,6 @@ const config: Config = {
   title: 'FHE101',
   tagline: '全同态加密开发者入门指南',
   favicon: 'img/favicon.png',
-  future: {
-    v4: true,
-  },
 
   url: 'https://fhe101.dev',
   baseUrl: '/',
@@ -72,7 +69,7 @@ const config: Config = {
           label: '文档',
         },
         {
-          type: 'localeDropdown',
+          type: 'custom-LocaleDropdown',
           position: 'right',
         },
         {

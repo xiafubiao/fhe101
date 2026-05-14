@@ -1,0 +1,22 @@
+{
+  "sidebar.welcome": {
+    "message": "Welcome",
+    "description": "The welcome label in sidebar"
+  },
+  "sidebar.part1": {
+    "message": "Part 1: Understanding FHE",
+    "description": "Part 1 label in sidebar"
+  },
+  "sidebar.part2": {
+    "message": "Part 2: Getting Started with FHE Development",
+    "description": "Part 2 label in sidebar"
+  },
+  "sidebar.part3": {
+    "message": "FHE Advanced",
+    "description": "Part 3 label in sidebar"
+  },
+  "sidebar.part4": {
+    "message": "Part 4: Resources & Community",
+    "description": "Part 4 label in sidebar"
+  }
+}
