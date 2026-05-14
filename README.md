@@ -1,40 +1,40 @@
 # FHE101
 
-全同态加密（Fully Homomorphic Encryption）开发者入门指南。
+A developer's getting started guide to Fully Homomorphic Encryption (FHE).
 
-## 本地预览
+## Local Preview
 
 ```bash
-# 安装依赖
+# Install dependencies
 npm install
 
-# 编译项目
+# Build the project
 npm run build
 
-# 启动开发服务器
+# Start the development server
 npm start
 ```
 
-访问 http://localhost:3000 查看文档。
+Visit http://localhost:3000 to view the documentation.
 
-## 在线文档
+## Online Documentation
 
-TODO: 配置 GitHub Pages 或其他托管服务后更新此处。
+TODO: Update this section after configuring GitHub Pages or other hosting service.
 
-## 技术栈
+## Tech Stack
 
-- [Docusaurus](https://docusaurus.io/) - 网站框架
+- [Docusaurus](https://docusaurus.io/) - Website framework
 - [React](https://react.dev/) - UI
-- [Infima](https://infima.dev/) - CSS 框架
+- [Infima](https://infima.dev/) - CSS framework
 
-## 内容结构
+## Content Structure
 
 ```
 docs/
-├── part1-understand/    # 认识 FHE
-├── part2-dev-start/    # 开发入门
-├── part3-advanced/     # 进阶开发
-└── part4-resources/    # 资源与社区
+├── part1-understand/    # Understanding FHE
+├── part2-dev-start/    # Getting Started with Development
+├── part3-advanced/     # Advanced Development
+└── part4-resources/    # Resources & Community
 ```
 
 ## License

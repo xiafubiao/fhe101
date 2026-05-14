@@ -25,7 +25,7 @@ const config: Config = {
           sidebarPath: './sidebars.ts',
           routeBasePath: '/',
           editUrl:
-            'https://github.com/fhe101/fhe101/edit/main/',
+            'https://github.com/xiafubiao/fhe101/edit/main/',
         },
         blog: false,
         theme: {
@@ -87,7 +87,7 @@ const config: Config = {
           items: [
             {
               label: 'GitHub',
-              href: 'https://github.com/fhe101',
+              href: 'https://github.com/xiafubiao/fhe101',
             },
           ],
         },
