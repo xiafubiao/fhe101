@@ -12,66 +12,57 @@ Using FHE technology, it's possible to implement **Confidential ERC-20 Tokens** 
 
 ## Official Examples
 
-This example uses **TFHE-rs** and **fhEVM**, provided by Zama.
+OpenZeppelin provides the **ERC-7984** confidential token standard built on fhEVM.
 
 | Resource | Link |
 |----------|------|
+| ERC-7984 Token Docs | [docs.openzeppelin.com/confidential-contracts/token](https://docs.openzeppelin.com/confidential-contracts/token) |
 | TFHE-rs Quick Start | [docs.zama.ai/tfhe-rs/get-started/quick-start](https://docs.zama.ai/tfhe-rs/get-started/quick-start) |
-| fhEVM Complete Tutorial | [docs.zama.ai/protocol/solidity-guides/getting-started/quick-start-tutorial](https://docs.zama.ai/protocol/solidity-guides/getting-started/quick-start-tutorial) |
-| TFHE-rs GitHub | [github.com/zama-ai/tfhe-rs/tree/main/examples](https://github.com/zama-ai/tfhe-rs/tree/main/examples) |
-| fhEVM GitHub | [github.com/zama-ai/fhevm/tree/main/examples](https://github.com/zama-ai/fhevm/tree/main/examples) |
+| fhEVM Tutorial | [docs.zama.ai/protocol/solidity-guides/getting-started/quick-start-tutorial](https://docs.zama.ai/protocol/solidity-guides/getting-started/quick-start-tutorial) |
 
-## Installation
+## About ERC-7984
 
-See: [TFHE-rs Installation](https://docs.zama.ai/tfhe-rs/get-started/installation)
+ERC-7984 is a confidential token standard developed by OpenZeppelin, similar to ERC-20, but with all balance and transfer amounts represented as ciphertext handles, ensuring no data is leaked to the public.
 
-```bash
-# Install Rust
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-source ~/.cargo/env
+## Official Confidential Token Example
 
-# Create project
-cargo new tfhe-example
-cd tfhe-example
+Source: [OpenZeppelin ERC-7984](https://docs.openzeppelin.com/confidential-contracts/token)
 
-# Add dependency
-echo 'tfhe = { version = "~1.6.1", features = ["integer"] }' >> Cargo.toml
+### Mint/Burn Contract
 
-# Run
-cargo run --release
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+import {FHE, externalEuint64} from "@fhevm/solidity/lib/FHE.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {ERC7984} from "@openzeppelin/confidential-contracts/token/ERC7984/ERC7984.sol";
+
+contract ERC7984MintableBurnable is ERC7984, Ownable {
+    constructor(
+        address owner,
+        string memory name,
+        string memory symbol,
+        string memory uri
+    ) ERC7984(name, symbol, uri) Ownable(owner) {}
+
+    function mint(address to, externalEuint64 amount, bytes memory inputProof) public onlyOwner {
+        _mint(to, FHE.fromExternal(amount, inputProof));
+    }
+
+    function burn(address from, externalEuint64 amount, bytes memory inputProof) public onlyOwner {
+        _burn(from, FHE.fromExternal(amount, inputProof));
+    }
+}
 ```
 
-## Official TFHE-rs Example
+### Operator Setup
 
-Source: [TFHE-rs Quick Start](https://docs.zama.ai/tfhe-rs/get-started/quick-start)
+```typescript
+const alice: Wallet;
+const expirationTimestamp = Math.round(Date.now()) + 60 * 60 * 24; // Now + 24 hours
 
-```rust
-use tfhe::{ConfigBuilder, generate_keys, set_server_key, FheUint8};
-use tfhe::prelude::*;
-
-fn main() {
-    let config = ConfigBuilder::default().build();
-
-    // Client-side: generate keys
-    let (client_key, server_key) = generate_keys(config);
-
-    let clear_a = 27u8;
-    let clear_b = 128u8;
-
-    // Client-side: encrypt data
-    let a = FheUint8::encrypt(clear_a, &client_key);
-    let b = FheUint8::encrypt(clear_b, &client_key);
-
-    // Server-side: compute on ciphertext
-    set_server_key(server_key);
-    let result = a + b;
-
-    // Client-side: decrypt result
-    let decrypted_result: u8 = result.decrypt(&client_key);
-
-    let clear_result = clear_a + clear_b;
-    assert_eq!(decrypted_result, clear_result);
-}
+await tokenContract.connect(alice).setOperator(bob, expirationTimestamp);
 ```
 
 ## Confidential Transaction Principles
@@ -81,17 +72,11 @@ Traditional ERC-20 transaction:
 Alice transfers 100 USDC to Bob
 → Visible to everyone: Alice address, Bob address, transfer amount
 
-Confidential ERC-20 transaction:
+Confidential ERC-7984 transaction:
 Alice transfers E(100) USDC to Bob (E means encrypted)
 → Only Alice and Bob know the actual amount
 → Verifiers can verify transaction validity without knowing the amount
 ```
-
-## fhEVM Confidential Contract Example
-
-See: [fhEVM Quick Start Tutorial](https://docs.zama.ai/protocol/solidity-guides/getting-started/quick-start-tutorial)
-
-fhEVM allows converting regular Solidity contracts to confidential contracts using encrypted types like `euint32`, `euint256`.
 
 ## Comparison with ZK
 

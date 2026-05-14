@@ -12,86 +12,71 @@ sidebar_position: 3
 
 ## 官方示例
 
-本案例使用 **TFHE-rs** 和 **fhEVM**，由 Zama 提供。
+OpenZeppelin 提供了基于 fhEVM 的机密代币标准 **ERC-7984**。
 
 | 资源 | 链接 |
 |------|------|
+| ERC-7984 代币文档 | [docs.openzeppelin.com/confidential-contracts/token](https://docs.openzeppelin.com/confidential-contracts/token) |
 | TFHE-rs 快速开始 | [docs.zama.ai/tfhe-rs/get-started/quick-start](https://docs.zama.ai/tfhe-rs/get-started/quick-start) |
-| fhEVM 完整教程 | [docs.zama.ai/protocol/solidity-guides/getting-started/quick-start-tutorial](https://docs.zama.ai/protocol/solidity-guides/getting-started/quick-start-tutorial) |
-| TFHE-rs GitHub | [github.com/zama-ai/tfhe-rs/tree/main/examples](https://github.com/zama-ai/tfhe-rs/tree/main/examples) |
-| fhEVM GitHub | [github.com/zama-ai/fhevm/tree/main/examples](https://github.com/zama-ai/fhevm/tree/main/examples) |
+| fhEVM 教程 | [docs.zama.ai/protocol/solidity-guides/getting-started/quick-start-tutorial](https://docs.zama.ai/protocol/solidity-guides/getting-started/quick-start-tutorial) |
 
-## 安装和环境
+## ERC-7984 简介
 
-详见：[TFHE-rs 安装文档](https://docs.zama.ai/tfhe-rs/get-started/installation)
+ERC-7984 是 OpenZeppelin 开发的机密代币标准，类似于 ERC-20，但所有余额和转账金额都表示为密文句柄，确保不会有数据泄露给公众。
 
-```bash
-# 安装 Rust
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-source ~/.cargo/env
+## 官方机密代币示例
 
-# 创建项目
-cargo new tfhe-example
-cd tfhe-example
+来源：[OpenZeppelin ERC-7984](https://docs.openzeppelin.com/confidential-contracts/token)
 
-# 添加依赖
-echo 'tfhe = { version = "~1.6.1", features = ["integer"] }' >> Cargo.toml
+### 铸造/销毁合约
 
-# 运行
-cargo run --release
-```
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
 
-## 官方 TFHE-rs 示例
+import {FHE, externalEuint64} from "@fhevm/solidity/lib/FHE.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {ERC7984} from "@openzeppelin/confidential-contracts/token/ERC7984/ERC7984.sol";
 
-来源：[TFHE-rs Quick Start](https://docs.zama.ai/tfhe-rs/get-started/quick-start)
+contract ERC7984MintableBurnable is ERC7984, Ownable {
+    constructor(
+        address owner,
+        string memory name,
+        string memory symbol,
+        string memory uri
+    ) ERC7984(name, symbol, uri) Ownable(owner) {}
 
-```rust
-use tfhe::{ConfigBuilder, generate_keys, set_server_key, FheUint8};
-use tfhe::prelude::*;
+    function mint(address to, externalEuint64 amount, bytes memory inputProof) public onlyOwner {
+        _mint(to, FHE.fromExternal(amount, inputProof));
+    }
 
-fn main() {
-    let config = ConfigBuilder::default().build();
-
-    // 客户端：生成密钥
-    let (client_key, server_key) = generate_keys(config);
-
-    let clear_a = 27u8;
-    let clear_b = 128u8;
-
-    // 客户端：加密数据
-    let a = FheUint8::encrypt(clear_a, &client_key);
-    let b = FheUint8::encrypt(clear_b, &client_key);
-
-    // 服务端：在密文上计算
-    set_server_key(server_key);
-    let result = a + b;
-
-    // 客户端：解密结果
-    let decrypted_result: u8 = result.decrypt(&client_key);
-
-    let clear_result = clear_a + clear_b;
-    assert_eq!(decrypted_result, clear_result);
+    function burn(address from, externalEuint64 amount, bytes memory inputProof) public onlyOwner {
+        _burn(from, FHE.fromExternal(amount, inputProof));
+    }
 }
 ```
 
-## 机密交易原理
+### 操作员（Operator）设置
+
+```typescript
+const alice: Wallet;
+const expirationTimestamp = Math.round(Date.now()) + 60 * 60 * 24; // Now + 24 hours
+
+await tokenContract.connect(alice).setOperator(bob, expirationTimestamp);
+```
+
+## 机密转账原理
 
 ```
 传统 ERC-20 交易：
 Alice 转账 100 USDC 给 Bob
 → 所有人可见：Alice 地址、Bob 地址、转账金额
 
-机密 ERC-20 交易：
+机密 ERC-7984 交易：
 Alice 转账 E(100) USDC 给 Bob（E 表示加密）
 → 只有 Alice 和 Bob 知道实际金额
 → 验证者可以验证交易有效性，但不知道具体金额
 ```
-
-## fhEVM 机密合约示例
-
-详见：[fhEVM Quick Start Tutorial](https://docs.zama.ai/protocol/solidity-guides/getting-started/quick-start-tutorial)
-
-fhEVM 允许将普通 Solidity 合约转换为隐私合约，使用加密类型如 `euint32`、`euint256`。
 
 ## 与 ZK 的对比
 
