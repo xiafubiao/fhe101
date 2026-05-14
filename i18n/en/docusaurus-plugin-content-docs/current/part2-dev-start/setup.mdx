@@ -30,29 +30,31 @@ Official installation and environment guides for each SDK:
 Using TFHE-rs as an example, experience homomorphic encryption in 5 minutes:
 
 ```rust
+use tfhe::{ConfigBuilder, generate_keys, set_server_key, FheUint8};
 use tfhe::prelude::*;
-use tfhe::{generate_keys, set_server_key, ConfigBuilder};
 
 fn main() {
-    // 1. Configure parameters
-    let config = ConfigBuilder::all_disabled()
-        .enable_default_integers()
-        .build();
+    let config = ConfigBuilder::default().build();
 
-    // 2. Generate keys
+    // Client-side
     let (client_key, server_key) = generate_keys(config);
 
-    // 3. Encrypt on client
+    let clear_a = 27u8;
+    let clear_b = 128u8;
+
+    let a = FheUint8::encrypt(clear_a, &client_key);
+    let b = FheUint8::encrypt(clear_b, &client_key);
+
+    // Server-side
     set_server_key(server_key);
-    let a = FheInt32::encrypt(42, &client_key);
-    let b = FheInt32::encrypt(1, &client_key);
+    let result = a + b;
 
-    // 4. Compute on ciphertext in the cloud (doesn't touch plaintext)
-    let result = &a + &b;
+    // Client-side
+    let decrypted_result: u8 = result.decrypt(&client_key);
 
-    // 5. Client decrypts
-    let decrypted: i32 = result.decrypt(&client_key);
-    println!("42 + 1 = {}", decrypted); // Outputs 43
+    let clear_result = clear_a + clear_b;
+
+    assert_eq!(decrypted_result, clear_result);
 }
 ```
 
