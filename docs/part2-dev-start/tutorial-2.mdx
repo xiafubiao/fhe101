@@ -2,94 +2,161 @@
 sidebar_position: 3
 ---
 
-# 案例二：区块链隐私交易
+# 案例二：隐私 Swap
 
-## 场景
+## 场景：为什么需要隐私 Swap？
 
-在传统区块链上，所有的交易金额、余额都是公开的。假设 Alice 想向 Bob 转账，但她不想让别人知道自己有多少钱、转了多少。
+在传统 AMM（自动做市商，如 Uniswap）中，所有交易都暴露在链上：
 
-使用 FHE 技术，可以在区块链上实现**机密 ERC-20 Token**，让交易金额和余额保持加密状态。
+- 交易者提交的订单金额是公开的
+- 攻击者可以观察到_pending_交易
+- 通过_front-running_（抢跑攻击）操纵价格获利
 
-## 官方示例
+**隐私 Swap** 可以解决这一问题：交易者加密自己的订单金额，矿工/验证者在密文上执行计算，全程不知道实际交易量。
 
-OpenZeppelin 提供了基于 fhEVM 的机密代币标准 **ERC-7984**。
+## AMM 工作原理
 
-| 资源 | 链接 |
-|------|------|
-| ERC-7984 代币文档 | [docs.openzeppelin.com/confidential-contracts/token](https://docs.openzeppelin.com/confidential-contracts/token) |
-| TFHE-rs 快速开始 | [docs.zama.ai/tfhe-rs/get-started/quick-start](https://docs.zama.ai/tfhe-rs/get-started/quick-start) |
-| fhEVM 教程 | [docs.zama.ai/protocol/solidity-guides/getting-started/quick-start-tutorial](https://docs.zama.ai/protocol/solidity-guides/getting-started/quick-start-tutorial) |
+AMM 是去中心化交易所的核心机制：
 
-## ERC-7984 简介
+```
+池子（Pool）包含两种代币：
+- ETH 池：100 ETH
+- NU 池：1,000 NU
 
-ERC-7984 是 OpenZeppelin 开发的机密代币标准，类似于 ERC-20，但所有余额和转账金额都表示为密文句柄，确保不会有数据泄露给公众。
+交易公式（恒定乘积公式）：
+x * y = k（其中 k 是常数）
 
-## 官方机密代币示例
+交换比例由池子储量决定：
+ETH 数量 × NU 数量 = 常数
+```
 
-来源：[OpenZeppelin ERC-7984](https://docs.openzeppelin.com/confidential-contracts/token)
+## FHE 如何实现隐私 Swap
 
-### 铸造/销毁合约
+来源：[Sunscreen BFV Documentation - Private token swap](https://bfv-docs.sunscreen.tech/fhe/fhe_programs/example.html)
 
-```solidity
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.24;
+Alice 想用 NU 代币兑换 ETH，但不想让别人知道她兑换了多少。
 
-import {FHE, externalEuint64} from "@fhevm/solidity/lib/FHE.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {ERC7984} from "@openzeppelin/confidential-contracts/token/ERC7984/ERC7984.sol";
+### 核心流程
 
-contract ERC7984MintableBurnable is ERC7984, Ownable {
-    constructor(
-        address owner,
-        string memory name,
-        string memory symbol,
-        string memory uri
-    ) ERC7984(name, symbol, uri) Ownable(owner) {}
+```
+1. Alice 用公钥加密自己的 NU 数量（如 20 NU）
+2. Alice 把加密后的订单发送到链上
+3. 矿工在密文上执行 Swap 计算（不知道实际数量）
+4. 矿工返回加密后的 ETH 数量
+5. Alice 用私钥解密，得到实际收到的 ETH
+```
 
-    function mint(address to, externalEuint64 amount, bytes memory inputProof) public onlyOwner {
-        _mint(to, FHE.fromExternal(amount, inputProof));
+### FHE 程序：swap_nu
+
+这是核心的 FHE 程序，使用 BFV 方案：
+
+```rust
+#[fhe_program(scheme = "bfv")]
+/// 这个程序计算 NU 换 ETH 的汇率
+fn swap_nu(
+    nu_tokens_to_trade: Cipher<Rational>,
+) -> Cipher<Rational> {
+    let total_eth = 100.0;
+    let total_nu = 1_000.0;
+
+    // 恒定乘积公式
+    -(total_eth * total_nu / (total_nu + nu_tokens_to_trade) - total_eth)
+}
+```
+
+**关键点**：
+- 输入是加密的 NU 数量（`Cipher<Rational>`）
+- 输出是加密的 ETH 数量
+- 池子储量（`total_eth`、`total_nu`）是公开的
+- 使用 `Rational` 类型因为涉及密文上的除法
+
+### Alice（交易者）
+
+Alice 需要：
+1. 生成公钥/私钥对
+2. 加密她的交易数量
+3. 最后解密查看收到的 ETH
+
+```rust
+struct Alice {
+    pub public_key: PublicKey,
+    private_key: PrivateKey,
+    runtime: FheRuntime,
+}
+
+impl Alice {
+    // 创建加密交易
+    pub fn create_transaction(&self, amount: f64) -> Result<Ciphertext, Error> {
+        Ok(self.runtime
+            .encrypt(Rational::try_from(amount)?, &self.public_key)?
+        )
     }
 
-    function burn(address from, externalEuint64 amount, bytes memory inputProof) public onlyOwner {
-        _burn(from, FHE.fromExternal(amount, inputProof));
+    // 解密查看收到的 ETH
+    pub fn check_received_eth(&self, received_eth: Ciphertext) -> Result<(), Error> {
+        let received_eth: Rational = self
+            .runtime
+            .decrypt(&received_eth, &self.private_key)?;
+        println!("Alice received {}ETH", received_eth);
+        Ok(())
     }
 }
 ```
 
-### 操作员（Operator）设置
+### 矿工/验证者
 
-```typescript
-const alice: Wallet;
-const expirationTimestamp = Math.round(Date.now()) + 60 * 60 * 24; // Now + 24 hours
+矿工执行 FHE 程序，但不知道实际交易量：
 
-await tokenContract.connect(alice).setOperator(bob, expirationTimestamp);
+```rust
+struct Miner {
+    pub compiled_swap_nu: CompiledFheProgram,
+    runtime: FheRuntime,
+}
+
+impl Miner {
+    pub fn run_contract(
+        &self,
+        nu_tokens_to_trade: Ciphertext,
+        public_key: &PublicKey,
+    ) -> Result<Ciphertext, Error> {
+        // 在密文上运行 Swap 计算
+        let results = self.runtime.run(
+            &self.compiled_swap_nu,
+            vec![nu_tokens_to_trade],
+            public_key,
+        )?;
+        Ok(results[0].clone())
+    }
+}
 ```
 
-## 机密转账原理
+### 完整交互流程
 
+```rust
+fn main() -> Result<(), Error> {
+    // 1. 矿工设置 Swap 合约
+    let miner = Miner::setup()?;
+
+    // 2. Alice 设置（使用矿工公布的参数）
+    let alice = Alice::setup(&miner.compiled_swap_nu.metadata.params)?;
+
+    // 3. Alice 加密她的订单（20 NU）
+    let transaction = alice.create_transaction(20.0)?;
+
+    // 4. 矿工在密文上计算应得 ETH
+    let encrypted_received_eth =
+        miner.run_contract(transaction, &alice.public_key)?;
+
+    // 5. Alice 解密查看结果
+    alice.check_received_eth(encrypted_received_eth)?;
+
+    Ok(())
+}
 ```
-传统 ERC-20 交易：
-Alice 转账 100 USDC 给 Bob
-→ 所有人可见：Alice 地址、Bob 地址、转账金额
 
-机密 ERC-7984 交易：
-Alice 转账 E(100) USDC 给 Bob（E 表示加密）
-→ 只有 Alice 和 Bob 知道实际金额
-→ 验证者可以验证交易有效性，但不知道具体金额
-```
+## 更多资源
 
-## 与 ZK 的对比
-
-| 特性 | FHE 方案 | ZK 方案（如 Tornado Cash） |
-|------|----------|---------------------------|
-| 隐藏内容 | 交易金额、余额 | 交易关联性（谁转给谁） |
-| 透明性 | 交易本身公开，金额加密 | 交易公开，无金额信息 |
-| 计算开销 | 高（密文运算） | 中等（证明生成） |
-| 适用场景 | 保密金额的转账 | 匿名混币 |
-
-## 关键点总结
-
-1. **金额加密**：交易金额和余额在整个过程中保持加密
-2. **可验证性**：验证者可以在不解密的情况下验证交易有效性
-3. **选择性披露**：只有拥有私钥的用户才能解密查看实际金额
-4. **合规性**：结合 ZK 可以实现监管可追溯性
+- [Sunscreen BFV Documentation](https://bfv-docs.sunscreen.tech/fhe/fhe_programs/example.html)
+- [Uniswap V2 文档](https://docs.uniswap.org/protocol/V2/concepts/protocol-overview/how-uniswap-works)
+- [Front-running 研究论文](https://arxiv.org/pdf/1902.05164.pdf)
+- [ERC-7984 机密代币标准](https://docs.openzeppelin.com/confidential-contracts/token)（另一种隐私 Swap 实现）

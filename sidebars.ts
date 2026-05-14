@@ -29,7 +29,6 @@ const sidebars: SidebarsConfig = {
         'part2-dev-start/tutorial-1',
         'part2-dev-start/tutorial-2',
         'part2-dev-start/tutorial-3',
-        'part2-dev-start/fhevm-tutorial',
       ],
     },
     {
