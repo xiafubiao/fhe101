@@ -4,53 +4,77 @@ sidebar_position: 3
 
 # Example 2: Blockchain Privacy Transactions
 
-## Environment Setup
+## Scenario
 
-This example uses **TFHE-rs** (Rust implementation), provided by Zama.
+In traditional blockchains, all transaction amounts and balances are public. Suppose Alice wants to transfer money to Bob, but she doesn't want others to know how much she has or how much she transfers.
 
-### System Requirements
+Using FHE technology, it's possible to implement **Confidential ERC-20 Tokens** on the blockchain, keeping transaction amounts and balances encrypted.
 
-| Item | Requirement |
-|------|------|
-| Operating System | Linux (Ubuntu 20.04+), macOS, Windows (WSL2) |
-| Memory | Minimum 8GB (16GB+ recommended) |
-| Rust | 1.60+ |
+## Official Examples
 
-### Installation Steps
+This example uses **TFHE-rs** and **fhEVM**, provided by Zama.
+
+| Resource | Link |
+|----------|------|
+| TFHE-rs Quick Start | [docs.zama.ai/tfhe-rs/get-started/quick-start](https://docs.zama.ai/tfhe-rs/get-started/quick-start) |
+| fhEVM Complete Tutorial | [docs.zama.ai/protocol/solidity-guides/getting-started/quick-start-tutorial](https://docs.zama.ai/protocol/solidity-guides/getting-started/quick-start-tutorial) |
+| TFHE-rs GitHub | [github.com/zama-ai/tfhe-rs/tree/main/examples](https://github.com/zama-ai/tfhe-rs/tree/main/examples) |
+| fhEVM GitHub | [github.com/zama-ai/fhevm/tree/main/examples](https://github.com/zama-ai/fhevm/tree/main/examples) |
+
+## Installation
+
+See: [TFHE-rs Installation](https://docs.zama.ai/tfhe-rs/get-started/installation)
 
 ```bash
-# 1. Install Rust (if not already installed)
+# Install Rust
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 source ~/.cargo/env
 
-# 2. Create project
-cargo new privacy-token
-cd privacy-token
+# Create project
+cargo new tfhe-example
+cd tfhe-example
 
-# 3. Add TFHE-rs dependency
-cargo add tfhe --features boolean,shortint,integer
+# Add dependency
+echo 'tfhe = { version = "~1.6.1", features = ["integer"] }' >> Cargo.toml
 
-# 4. Build (first build may take 10-20 minutes)
-cargo build --release
+# Run
+cargo run --release
 ```
 
-### Notes
+## Official TFHE-rs Example
 
-> **warning** Long first build time
->
-> TFHE-rs contains a lot of cryptographic operations. First build may take 10-20 minutes. Please be patient.
+Source: [TFHE-rs Quick Start](https://docs.zama.ai/tfhe-rs/get-started/quick-start)
 
-> **warning** Memory Requirements
->
-> Large memory is needed during compilation. Build may fail if memory is insufficient.
+```rust
+use tfhe::{ConfigBuilder, generate_keys, set_server_key, FheUint8};
+use tfhe::prelude::*;
 
-## Scenario
+fn main() {
+    let config = ConfigBuilder::default().build();
 
-On traditional blockchains, all transaction amounts and balances are public. Suppose Alice wants to transfer to Bob but doesn't want others to know how much she has or how much she transferred.
+    // Client-side: generate keys
+    let (client_key, server_key) = generate_keys(config);
 
-Using FHE technology, you can implement a **Confidential ERC-20 Token** on blockchain, keeping transaction amounts and balances encrypted.
+    let clear_a = 27u8;
+    let clear_b = 128u8;
 
-## Confidential Transaction Principle
+    // Client-side: encrypt data
+    let a = FheUint8::encrypt(clear_a, &client_key);
+    let b = FheUint8::encrypt(clear_b, &client_key);
+
+    // Server-side: compute on ciphertext
+    set_server_key(server_key);
+    let result = a + b;
+
+    // Client-side: decrypt result
+    let decrypted_result: u8 = result.decrypt(&client_key);
+
+    let clear_result = clear_a + clear_b;
+    assert_eq!(decrypted_result, clear_result);
+}
+```
+
+## Confidential Transaction Principles
 
 ```
 Traditional ERC-20 transaction:
@@ -58,116 +82,29 @@ Alice transfers 100 USDC to Bob
 → Visible to everyone: Alice address, Bob address, transfer amount
 
 Confidential ERC-20 transaction:
-Alice transfers E(100) USDC to Bob (E denotes encrypted)
+Alice transfers E(100) USDC to Bob (E means encrypted)
 → Only Alice and Bob know the actual amount
 → Verifiers can verify transaction validity without knowing the amount
 ```
 
-## FHE Scheme Selection
+## fhEVM Confidential Contract Example
 
-| Scheme | Suitable Scenarios | Description |
-|------|----------|------|
-| TFHE | Balance comparison, conditional judgment | Suitable for scenarios needing comparison operations |
-| BFV | Integer operations, batch processing | Suitable for large integer operations |
-| CKKS | Approximate computation | Suitable for floating-point precision needs |
+See: [fhEVM Quick Start Tutorial](https://docs.zama.ai/protocol/solidity-guides/getting-started/quick-start-tutorial)
 
-## Implementing Private Transfer Using TFHE
-
-```rust
-// Simplified example: TFHE-rs implements private transfer
-use tfhe::prelude::*;
-use tfhe::{generate_keys, set_server_key, FheUint32};
-
-fn main() {
-    // 1. Generate keys
-    let config = ConfigBuilder::all_disabled()
-        .enable_default_integers()
-        .build();
-    let (client_key, server_key) = generate_keys(config);
-    set_server_key(server_key);
-
-    // 2. Alice's initial balance and transfer amount (plaintext)
-    let alice_balance: u32 = 1000;  // Alice has 1000 USDC
-    let transfer_amount: u32 = 100;  // Transfer 100 USDC
-
-    // 3. Alice encrypts her balance and transfer amount
-    let encrypted_balance = FheUint32::encrypt(alice_balance, &client_key);
-    let encrypted_amount = FheUint32::encrypt(transfer_amount, &client_key);
-
-    // 4. Blockchain verification: balance >= transfer amount?
-    //    This is a conditional comparison, can be executed on ciphertext
-    let can_transfer = encrypted_balance.ge(&encrypted_amount);
-
-    // 5. If verification passes, execute transfer
-    //    New balance = original balance - transfer amount
-    let new_balance = encrypted_balance - encrypted_amount;
-
-    // 6. Decrypt verification result (only Alice can decrypt)
-    let can_transfer_bool: bool = can_transfer.decrypt(&client_key);
-    let new_balance_value: u32 = new_balance.decrypt(&client_key);
-
-    println!("Verification passed: {}", can_transfer_bool);  // true
-    println!("Balance after transfer: {} USDC", new_balance_value);  // 900 USDC
-
-    // Key: Blockchain nodes only know verification passed/failed, not the specific amounts!
-}
-```
-
-## Confidential ERC-20 Workflow
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                 Confidential ERC-20 Transaction Flow         │
-├─────────────────────────────────────────────────────────────┤
-│                                                              │
-│  1. Deposit Phase                                            │
-│     Alice deposits 1000 USDC into contract                    │
-│     Contract stores: address(Alice) -> E(1000)               │
-│                           (encrypted balance)                  │
-│                                                              │
-│  2. Transfer Phase                                           │
-│     Alice initiates transfer: E(100) USDC to Bob              │
-│     Contract verifies: E(1000) >= E(100)  ✓                   │
-│     Contract updates:                                         │
-│       Alice: E(1000) -> E(900)                               │
-│       Bob:   E(0) -> E(100)                                   │
-│                                                              │
-│  3. Query Phase                                              │
-│     Only Alice can decrypt her own balance                   │
-│     Bob doesn't know how much Alice has                       │
-│     Anyone can verify transaction validity (without revealing amount)│
-│                                                              │
-└─────────────────────────────────────────────────────────────┘
-```
+fhEVM allows converting regular Solidity contracts to confidential contracts using encrypted types like `euint32`, `euint256`.
 
 ## Comparison with ZK
 
 | Feature | FHE Solution | ZK Solution (e.g., Tornado Cash) |
-|------|----------|---------------------------|
-| Hidden Content | Transaction amount, balance | Transaction association (who sent to whom) |
-| Transparency | Transaction itself public, amount encrypted | Transaction public, no amount info |
+|---------|-------------|----------------------------------|
+| Hidden Content | Transaction amounts, balances | Transaction relationships (who sent to whom) |
+| Transparency | Transaction itself is public, amount encrypted | Transaction is public, no amount info |
 | Computation Cost | High (ciphertext operations) | Medium (proof generation) |
-| Suitable Scenarios | Transfers with confidential amounts | Anonymous mixing |
+| Use Cases | Transfers with confidential amounts | Anonymous mixing |
 
-> **tip** FHE + ZK Combination
->
-> In practice, FHE and ZK can be combined:
-> - **FHE**: Protects transaction amount privacy
-> - **ZK**: Proves transaction validity, prevents double-spending
->
-> This combination protects privacy while ensuring blockchain security.
+## Key Takeaways
 
-## Real-World Application Cases
-
-| Project | Description | Technology |
-|------|------|------|
-| Zama | Blockchain encryption layer, supports confidential smart contracts | TFHE |
-| Circle Confidential ERC-20 | Stablecoin confidential transfer framework | FHE |
-| Inco Network | FHE-based confidential EVM | FHE + ZK |
-
-## Key Points Summary
-
-1. **Amount encrypted**: Transaction amount and balance remain encrypted throughout
-2. **Verifiability**: Verifiers can verify transaction validity without decryption
-3. **Selective disclosure**: Only users with private key can decrypt to view actual amounts
-4. **Compliance**: Combined with ZK, can achieve regulatory traceability
+1. **Amount encryption**: Transaction amounts and balances remain encrypted throughout
+2. **Verifiability**: Verifiers can verify transaction validity without decrypting
+3. **Selective disclosure**: Only users with the private key can decrypt to view actual amounts
+4. **Compliance**: Combined with ZK, it can achieve regulatory traceability
